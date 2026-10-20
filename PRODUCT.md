@@ -19,7 +19,7 @@ Success means a grader who opens the link cold understands what Katutubo is, can
 
 ## Positioning
 
-It's a magazine you move through, not a reference page. The 3D archipelago and per-chapter 3D objects (gongs, looms, terraces, spirits) carry the reader from place to story. Respect for living communities is built into the format: endonyms, a Sources section on every issue, draft markers on unverified text, and "Coming soon" placeholders rather than invented content.
+It's a magazine you move through, not a reference page. A paper-cut 3D archipelago, built from real elevation data, carries the reader from place to story, with a few per-chapter paper objects (terraces, gongs, bamboo, looms). Beliefs & Rituals chapters get stillness instead of an object. Respect for living communities is built into the format: endonyms, a Sources section on every issue, draft markers on unverified text, and "Coming soon" placeholders rather than invented content.
 
 ## Operating Context
 
@@ -31,9 +31,9 @@ It's a magazine you move through, not a reference page. The 3D archipelago and p
 - Static site: Vite + React + TypeScript, react-three-fiber/drei, deployed to GitHub Pages by GitHub Actions. No backend, no database, no tracking.
 - Content is Markdown in `src/content/groups/*.md`. Placeholder issues (`placeholder: true`) appear everywhere but publish no body. A content lint test guards every file.
 - Groups now: Ifugao, Mangyan, T'boli (draft articles); Aeta, Ati, Manobo (placeholders), covering Luzon, Visayas and Mindanao.
-- **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. How translations are stored and switched has not been designed yet.
-- 3D objects are procedural stand-ins. They're meant to be replaced by img2threejs models (`fromFactory` in `src/three/objects/`).
-- Music: in-browser synthesized gong patterns, labelled *synthesized*. Real recordings only with clear permission.
+- **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. Every interface string is in `src/i18n/en.ts`, so a Filipino edition is one more file with the same keys; the switch itself is not built yet.
+- The terraces are the one high-quality 3D model; the other objects are simple paper stand-ins. They can be replaced by img2threejs models (`fromFactory` in `src/stage/props/`).
+- Music: in-browser synthesized gong patterns and a plucked lute, labelled *synthesized*. Real recordings only with clear permission.
 - **Open decision: content sourcing.** The user hasn't decided between published sources only (NCIP, NCCA, academic, museums) and direct community contact and review.
 
 ## Brand Commitments
@@ -57,7 +57,7 @@ It's a magazine you move through, not a reference page. The 3D archipelago and p
 
 ## Accessibility & Inclusion
 
-- `prefers-reduced-motion` is respected (no camera drift, instant fly-in).
+- `prefers-reduced-motion` is respected: the reader gets the static paper journey (the same sections drawn as flat SVG, simple fades, no camera drift, no fly-in). Browsers without WebGL, and devices too slow even for the lighter 3D tier, get the same.
 - Every 3D marker has a keyboard and screen-reader route (the cover list).
 - New UI keeps text at WCAG AA contrast. This is enforced for placeholder styles by a test.
 - Bilingual EN/Filipino is a stated inclusion goal.
