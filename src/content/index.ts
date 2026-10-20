@@ -14,6 +14,8 @@ export interface Chapter {
   html: string
   /** 3D object key shown while this chapter is on screen (see three/objects/registry) */
   object: string
+  /** the chapter's **bold** key terms, shown as callouts pinned around its 3D object */
+  terms: string[]
 }
 
 export interface Group {
@@ -66,9 +68,11 @@ export function parseGroup(raw: string): Group {
   for (const part of parts) {
     const nl = part.indexOf('\n')
     const title = part.slice(0, nl).trim()
-    const html = marked.parse(part.slice(nl + 1), { async: false }) as string
+    const md = part.slice(nl + 1)
+    const html = marked.parse(md, { async: false }) as string
+    const terms = [...new Set([...md.matchAll(/\*\*([^*]+)\*\*/g)].map((t) => t[1].trim()))]
     if (/^sources?$/i.test(title)) sources = html
-    else chapters.push({ id: slugify(title), title, html, object: objects[chapters.length % objects.length] })
+    else chapters.push({ id: slugify(title), title, html, object: objects[chapters.length % objects.length], terms })
   }
   return {
     slug: meta.slug ?? slugify(meta.name ?? 'group'),

@@ -90,3 +90,11 @@ describe('coordinates', () => {
     expect(Number.isNaN(g.lon)).toBe(true)
   })
 })
+
+describe('chapter terms', () => {
+  it("collects each chapter's bold terms, in order and without duplicates", () => {
+    const g = parseGroup('---\nname: T\n---\n\n## Music\nThe **gangsa** and the **bangibang**, then **gangsa** again.\n\n## Crafts\nNo bold here.\n')
+    expect(g.chapters[0].terms).toEqual(['gangsa', 'bangibang'])
+    expect(g.chapters[1].terms).toEqual([])
+  })
+})

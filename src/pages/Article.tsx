@@ -1,28 +1,45 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MouseEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getGroup, nextIssue } from '../content'
-import { useMag } from '../store'
+import { frameState, useMag } from '../store'
+import { setTone, useSections } from '../hooks/useSections'
 import MusicPlayer from '../components/MusicPlayer'
+import Callouts from '../components/Callouts'
+import Panel from '../components/Panel'
+import { ArrowRight } from '../components/Icon'
+import { TERM_ANCHORS } from '../three/anchors'
+import { coords } from '../format'
+
+/** Chapters alternate grounds, the way the scroll story does: bone, charcoal, bone… */
+const toneOf = (i: number) => (i % 2 === 0 ? 'light' : 'dark')
 
 export default function Article() {
   const { slug = '' } = useParams()
   const group = getGroup(slug)
   const chapter = useMag((s) => s.chapter)
   const setChapter = useMag((s) => s.setChapter)
+  const root = useRef<HTMLElement>(null)
   const refs = useRef<(HTMLElement | null)[]>([])
 
-  // The chapter whose section crosses the middle of the screen drives the 3D object.
+  // The section crossing the middle of the screen sets the tone and the chapter (and so the 3D object).
+  useSections(root, (el) => { if (el.dataset.i !== undefined) setChapter(Number(el.dataset.i)) }, [group])
+
+  useEffect(() => { if (!group) setTone('dark') }, [group])
+
+  // The current chapter's object comes apart as its section scrolls past.
   useEffect(() => {
-    if (!group || group.placeholder) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setChapter(Number((e.target as HTMLElement).dataset.i))
-      },
-      { rootMargin: '-45% 0px -45% 0px' },
-    )
-    refs.current.forEach((el) => el && io.observe(el))
-    return () => io.disconnect()
-  }, [group, setChapter])
+    if (!group || group.placeholder) { frameState.explode = 0; return }
+    const onScroll = () => {
+      const el = refs.current[useMag.getState().chapter]
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const p = (window.innerHeight * 0.85 - r.top) / (r.height * 0.7)
+      frameState.explode = Math.min(1, Math.max(0, p))
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { window.removeEventListener('scroll', onScroll); frameState.explode = 0 }
+  }, [group])
 
   if (!group) {
     return (
@@ -37,73 +54,96 @@ export default function Article() {
 
   if (group.placeholder) {
     return (
-      <article className="article article--soon" style={{ ['--c' as string]: group.color }}>
-        <header className="article__hero">
-          <p className="kicker">{group.region}</p>
+      <article ref={root} className="article article--soon" style={{ ['--c' as string]: group.color }}>
+        <header className="article__hero" data-tone="dark">
           <h1>{group.name}</h1>
+          <p className="article__region">{group.region} · <span className="mono">{coords(group)}</span></p>
           <p className="article__tagline">Coming soon</p>
           <p className="article__soon">
             This issue is still being prepared. Its stories, music and crafts will be shared here once they have been gathered and checked with care.
           </p>
         </header>
         {next && (
-          <footer className="next">
-            <p className="kicker">Read a finished issue</p>
-            <Link to={`/group/${next.slug}`} style={{ color: next.color }}>{next.name} →</Link>
+          <footer className="next" data-tone="dark">
+            <p className="next__label">Read a finished issue</p>
+            <Link to={`/group/${next.slug}`} style={{ ['--c' as string]: next.color }}>{next.name} <ArrowRight /></Link>
           </footer>
         )}
       </article>
     )
   }
 
+  const current = group.chapters[chapter]
+  const terms = (current?.terms ?? []).slice(0, TERM_ANCHORS.length)
+
+  // A callout click finds the term in the chapter text and briefly marks it.
+  const showTerm = (term: string) => {
+    const strong = [...(refs.current[chapter]?.querySelectorAll('strong') ?? [])].find((s) => s.textContent?.trim() === term)
+    if (!strong) return
+    strong.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    strong.classList.remove('is-flash')
+    void strong.offsetWidth
+    strong.classList.add('is-flash')
+  }
+
+  const go = (i: number) => (e: MouseEvent) => {
+    e.preventDefault()
+    refs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
-    <article className="article" style={{ ['--c' as string]: group.color }}>
-      <header className="article__hero">
-        <p className="kicker">{group.region}</p>
+    <article ref={root} className="article" style={{ ['--c' as string]: group.color }}>
+      <header className="article__hero" data-tone="dark">
         <h1>{group.name}</h1>
+        <p className="article__region">{group.region} · <span className="mono">{coords(group)}</span></p>
         <p className="article__tagline">{group.tagline}</p>
         {group.draft && (
           <p className="draft-note" role="note">
             Draft. Facts still need to be checked against community, NCIP and academic sources.
           </p>
         )}
-        <span className="scroll-cue" aria-hidden="true">Scroll</span>
       </header>
 
-      <nav className="toc" aria-label="Chapters">
-        {group.chapters.map((c, i) => (
-          <a key={c.id} href={`#/group/${group.slug}`} className={i === chapter ? 'is-on' : ''}
-            onClick={(e) => { e.preventDefault(); refs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
-            <span>{String(i + 1).padStart(2, '0')}</span> {c.title}
-          </a>
-        ))}
-      </nav>
-
       {group.chapters.map((c, i) => (
-        <section key={c.id} id={c.id} data-i={i} ref={(el) => { refs.current[i] = el }}
+        <section key={c.id} id={c.id} data-i={i} data-tone={toneOf(i)} ref={(el) => { refs.current[i] = el }}
           className={`chapter ${i === chapter ? 'is-on' : ''}`}>
-          <div className="chapter__card">
-            <p className="chapter__no">Chapter {String(i + 1).padStart(2, '0')}</p>
+          <div className="chapter__text">
             <h2>{c.title}</h2>
             <div className="prose" dangerouslySetInnerHTML={{ __html: c.html }} />
-            {/^music/i.test(c.title) && <MusicPlayer group={group} />}
+            {/^music/i.test(c.title) && /gong|gangsa|klintang|agung/i.test(c.html) && <MusicPlayer group={group} />}
           </div>
         </section>
       ))}
 
       {group.sources && (
-        <section className="sources">
-          <h2>Sources &amp; further reading</h2>
+        <section className="sources" data-tone={toneOf(group.chapters.length)}>
+          <h2>Sources and further reading</h2>
           <div className="prose" dangerouslySetInnerHTML={{ __html: group.sources }} />
         </section>
       )}
 
       {next && (
-        <footer className="next">
-          <p className="kicker">Next issue</p>
-          <Link to={`/group/${next.slug}`} style={{ color: next.color }}>{next.name} →</Link>
+        <footer className="next" data-tone="dark">
+          <p className="next__label">Next issue</p>
+          <Link to={`/group/${next.slug}`} style={{ ['--c' as string]: next.color }}>{next.name} <ArrowRight /></Link>
         </footer>
       )}
+
+      <Callouts items={terms.map((t, i) => ({ id: `term:${i}`, label: t, onSelect: () => showTerm(t) }))} />
+
+      <Panel label="Reading position">
+        <nav aria-label="Chapters">
+          <ol className="chapters">
+            {group.chapters.map((c, i) => (
+              <li key={c.id}>
+                <a href={`#/group/${group.slug}`} className={i === chapter ? 'is-on' : ''} aria-current={i === chapter ? 'step' : undefined} onClick={go(i)}>
+                  <span className="mono">{String(i + 1).padStart(2, '0')}</span> {c.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </Panel>
     </article>
   )
 }

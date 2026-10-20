@@ -1,0 +1,63 @@
+# Product
+
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
+## Users
+
+- **Primary: graders of a school project.** Katutubo is the creator's school project. Teachers or panelists evaluate it by opening the published GitHub Pages link on their own phones or computers, with no guided demo. The site has to make its case unaided, on whatever device and browser a grader happens to use.
+- **The audience the magazine is written for:** Filipinos who want to know and value the Indigenous Peoples of the Philippines (from the About page: "so that more Filipinos can know and value them").
+
+## Product Purpose
+
+An interactive e-magazine. Each "issue" introduces one Indigenous People of the Philippines through chapters: Overview, Myths & Stories, Music, Beliefs & Rituals, Crafts, and Sources. Readers reach issues from a 3D map of the archipelago, the cover list, or the index, which can be filtered by Luzon, Visayas and Mindanao.
+
+Success means a grader who opens the link cold understands what Katutubo is, can explore it without help, and comes away seeing both the craft and the respect for the subject.
+
+## Positioning
+
+It's a magazine you move through, not a reference page. The 3D archipelago and per-chapter 3D objects (gongs, looms, terraces, spirits) carry the reader from place to story. Respect for living communities is built into the format: endonyms, a Sources section on every issue, draft markers on unverified text, and "Coming soon" placeholders rather than invented content.
+
+## Operating Context
+
+- Graders open a shared URL (`https://<user>.github.io/<repo>/`, HashRouter deep links like `#/group/ifugao`) on unknown devices. Phones are as likely as laptops. WebGL may be missing or slow, so the no-WebGL fallback and automatic effect reduction matter.
+- Deadline: **soon** (within a few weeks; the exact date and rubric were not given). Polish and reliability come before new features.
+
+## Capabilities and Constraints
+
+- Static site: Vite + React + TypeScript, react-three-fiber/drei, deployed to GitHub Pages by GitHub Actions. No backend, no database, no tracking.
+- Content is Markdown in `src/content/groups/*.md`. Placeholder issues (`placeholder: true`) appear everywhere but publish no body. A content lint test guards every file.
+- Groups now: Ifugao, Mangyan, T'boli (draft articles); Aeta, Ati, Manobo (placeholders), covering Luzon, Visayas and Mindanao.
+- **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. How translations are stored and switched has not been designed yet.
+- 3D objects are procedural stand-ins. They're meant to be replaced by img2threejs models (`fromFactory` in `src/three/objects/`).
+- Music: in-browser synthesized gong patterns, labelled *synthesized*. Real recordings only with clear permission.
+- **Open decision: content sourcing.** The user hasn't decided between published sources only (NCIP, NCCA, academic, museums) and direct community contact and review.
+
+## Brand Commitments
+
+- Name: **Katutubo** ("native" or "indigenous"). Masthead line: "the first peoples of the islands". Framed as "Issue 01 · An e-magazine".
+- Voice: plain, warm and respectful (see `src/pages/About.tsx`). It invites correction from community members.
+- Reference sites named by the user as inspiration, in their words: "i want to use inspiration from other websites check it: https://animejs.com/ and https://felixrieseberg.com/?ref=landing.love#work — i like how anime js gives information".
+
+## Evidence on Hand
+
+- Three draft articles (`ifugao.md`, `mangyan.md`, `tboli.md`), marked `draft: true` and still needing fact-checking against community, NCIP and academic sources.
+- No photographs, licensed recordings, community quotes or reviewer endorsements exist yet. `public/audio/` is empty. Future work must not fabricate any of these, and must not write facts, myths or taglines for placeholder groups.
+
+## Product Principles
+
+1. **Respect before spectacle.** Living cultures are not decoration. Sacred objects and rituals are never used as ornament, endonyms come first, and every claim has a source.
+2. **Self-explaining.** A grader with no presenter must understand what this is and how to explore it within the first screen.
+3. **Works on whatever opens it.** Phone, laptop, slow GPU or no WebGL: the stories stay reachable, and the 3D enhances the content rather than gating it.
+4. **Honest about what's unfinished.** Drafts are marked, placeholders say "Coming soon", and synthesized sound is labelled.
+5. **Reliability over reach while the deadline is near.** Finish and polish what exists before adding features.
+
+## Accessibility & Inclusion
+
+- `prefers-reduced-motion` is respected (no camera drift, instant fly-in).
+- Every 3D marker has a keyboard and screen-reader route (the cover list).
+- New UI keeps text at WCAG AA contrast. This is enforced for placeholder styles by a test.
+- Bilingual EN/Filipino is a stated inclusion goal.

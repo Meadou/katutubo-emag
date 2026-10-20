@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Group } from '../content'
 import { audioLevel } from '../store'
+import { Pause, Play } from './Icon'
 
 /** Pentatonic-ish pitches for five bossed gongs (illustrative, not a specific tuning). */
 const GONG_HZ = [262, 294, 330, 392, 440]
@@ -119,6 +120,17 @@ export default function MusicPlayer({ group }: { group: Group }) {
     draw()
   }
 
+  // At rest the visualizer shows a quiet row of bars, so the player never reads as an empty box.
+  useEffect(() => {
+    const g = canvas.current?.getContext('2d')
+    if (!g || playing) return
+    const { width: w, height: h } = g.canvas
+    g.clearRect(0, 0, w, h)
+    g.fillStyle = group.color
+    g.globalAlpha = 0.5
+    for (let i = 0; i < 48; i++) g.fillRect((i * w) / 48 + 1, h / 2 - 1, w / 48 - 2, 2)
+  }, [playing, group.color])
+
   useEffect(() => () => {
     clearInterval(timers.current.seq)
     cancelAnimationFrame(timers.current.raf)
@@ -130,8 +142,8 @@ export default function MusicPlayer({ group }: { group: Group }) {
   return (
     <div className="player">
       <button className="player__btn" onClick={toggle} aria-pressed={playing}>
-        <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span>
-        {playing ? 'Pause' : synthesized ? 'Play gong rhythm' : 'Listen'}
+        {playing ? <Pause /> : <Play />}
+        {playing ? 'Pause' : synthesized ? 'Play an illustrative gong rhythm' : 'Listen'}
       </button>
       <canvas ref={canvas} className="player__viz" width={480} height={64} aria-hidden="true" />
       <p className="player__note">

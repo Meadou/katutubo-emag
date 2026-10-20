@@ -1,60 +1,42 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { Inked } from '../ink'
+import { useExplode } from './useExplode'
 
-/** A slow vortex of glowing motes — used for chapters about belief, story and the unseen world. */
-export default function Spirits({ color }: { color: string }) {
-  const ref = useRef<THREE.Points>(null!)
-  const count = 1400
-  const { geometry, material } = useMemo(() => {
-    const pos = new Float32Array(count * 3)
-    const seed = new Float32Array(count)
-    for (let i = 0; i < count; i++) {
-      const r = 0.4 + Math.pow(Math.random(), 0.6) * 2.2
-      const a = Math.random() * Math.PI * 2
-      pos.set([Math.cos(a) * r, (Math.random() - 0.5) * 3.2, Math.sin(a) * r], i * 3)
-      seed[i] = Math.random()
-    }
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    geometry.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1))
-    const material = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uPx: { value: Math.min(window.devicePixelRatio, 2) } },
-      vertexShader: /* glsl */ `
-        uniform float uTime; uniform float uPx; attribute float aSeed; varying float vA;
-        void main() {
-          vec3 p = position;
-          float ang = uTime * (0.15 + aSeed * 0.25) / (0.6 + length(p.xz) * 0.4);
-          p.xz = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * p.xz;
-          p.y += sin(uTime * 0.6 + aSeed * 30.0) * 0.25;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_Position = projectionMatrix * mv;
-          gl_PointSize = (6.0 + aSeed * 16.0) * uPx / -mv.z;
-          vA = 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * 2.0 + aSeed * 50.0));
-        }`,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uColor; varying float vA;
-        void main() {
-          float d = length(gl_PointCoord - 0.5);
-          float a = smoothstep(0.5, 0.0, d);
-          gl_FragColor = vec4(mix(uColor, vec3(1.0, 0.95, 0.8), a * 0.5) * 1.6, a * vA);
-        }`,
+/**
+ * A slow orbit of small drawn solids around an empty centre — used for chapters about belief, story
+ * and the unseen world, and for issues still being prepared. The orbit widens as the chapter scrolls.
+ */
+export default function Spirits(_: { color: string }) {
+  const ref = useRef<THREE.Group>(null!)
+  const e = useExplode()
+  const bodies = useMemo(() => {
+    const ico = new THREE.IcosahedronGeometry(1, 0)
+    return Array.from({ length: 11 }, (_, i) => ({
+      a: (i / 11) * Math.PI * 2,
+      r: 0.9 + (i % 3) * 0.35,
+      y: ((i * 37) % 11) / 11 * 2.4 - 1.2,
+      s: 0.08 + ((i * 13) % 5) * 0.035,
+      speed: 0.12 + (i % 4) * 0.03,
+      geo: ico,
+    }))
+  }, [])
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime
+    const w = 1 + e.current * 0.7
+    ref.current.children.forEach((c, i) => {
+      const b = bodies[i]
+      const a = b.a + t * b.speed
+      c.position.set(Math.cos(a) * b.r * w, b.y + Math.sin(t * 0.5 + i) * 0.12, Math.sin(a) * b.r * w)
+      c.rotation.set(t * 0.3 + i, t * 0.2, 0)
     })
-    return { geometry, material }
-  }, [color])
-
-  useFrame(({ clock }) => { material.uniforms.uTime.value = clock.elapsedTime })
+  })
 
   return (
-    <group>
-      <points ref={ref} geometry={geometry} material={material} />
-      <mesh>
-        <sphereGeometry args={[0.22, 32, 32]} />
-        <meshBasicMaterial color={new THREE.Color(color).multiplyScalar(2)} toneMapped={false} />
-      </mesh>
+    <group ref={ref}>
+      {bodies.map((b, i) => <Inked key={i} geometry={b.geo} scale={b.s} threshold={1} />)}
     </group>
   )
 }

@@ -1,11 +1,12 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
 import { sceneObjectKeys, type Group } from '../../content'
 import { OBJECTS } from '../objects/registry'
+import DotGrid from '../DotGrid'
+import Anchor from '../Anchor'
+import { TERM_ANCHORS } from '../anchors'
 import { scrollState, useMag } from '../../store'
-import { createWeaveMaterial } from '../shaders/WeavePattern'
 
 /** Each chapter object scales in when its chapter is on screen and out when it leaves. */
 function Slot({ name, active, color }: { name: string; active: boolean; color: string }) {
@@ -27,40 +28,33 @@ function Slot({ name, active, color }: { name: string; active: boolean; color: s
 export default function GroupScene({ group }: { group: Group }) {
   const chapter = useMag((s) => s.chapter)
   const { viewport, size } = useThree()
+  const origin = useMemo(() => new THREE.Vector3(), [])
   const holder = useRef<THREE.Group>(null!)
-  const ring = useRef<THREE.Mesh>(null!)
-  const halo = useMemo(() => createWeaveMaterial(group.color, { wave: 0, brightness: 0.35 }), [group.color])
   const keys = useMemo(() => sceneObjectKeys(group), [group])
   const activeKey = group.chapters[chapter]?.object ?? keys[0]
   const wide = size.width > 900
 
-  useFrame(({ clock, pointer }, dt) => {
-    halo.uniforms.uTime.value = clock.elapsedTime
+  useFrame(({ pointer, camera }, dt) => {
     const h = holder.current
+    // measured at the live camera: the size captured at mount still belongs to the cover's far camera
+    const vp = viewport.getCurrentViewport(camera, origin)
     // object sits to the right of the text column on desktop, above it on mobile
-    const tx = wide ? viewport.width * 0.22 : 0
-    const ty = wide ? 0 : viewport.height * 0.18
+    const tx = wide ? vp.width * 0.21 : 0
+    const ty = wide ? -0.1 : vp.height * 0.24
     h.position.x = THREE.MathUtils.damp(h.position.x, tx, 3, dt)
     h.position.y = THREE.MathUtils.damp(h.position.y, ty, 3, dt)
-    h.rotation.y = THREE.MathUtils.damp(h.rotation.y, pointer.x * 0.35 + scrollState.progress * Math.PI * 0.6, 2.5, dt)
-    h.rotation.x = THREE.MathUtils.damp(h.rotation.x, -pointer.y * 0.15, 2.5, dt)
-    h.scale.setScalar(wide ? 1 : 0.62)
-    // halo sits behind the object (parallax-scaled for its depth), slowly turning
-    ring.current.position.x = h.position.x * 2.6
-    ring.current.position.y = h.position.y * 2.6
-    ring.current.rotation.z = 0.2 + clock.elapsedTime * 0.03
+    h.rotation.y = THREE.MathUtils.damp(h.rotation.y, -0.5 + pointer.x * 0.3 + scrollState.progress * Math.PI * 0.5, 2.5, dt)
+    h.rotation.x = THREE.MathUtils.damp(h.rotation.x, 0.18 - pointer.y * 0.12, 2.5, dt)
+    h.scale.setScalar(wide ? 0.72 : 0.4)
   })
 
   return (
     <group>
       <group ref={holder}>
         {keys.map((k) => <Slot key={k} name={k} active={k === activeKey} color={group.color} />)}
+        {TERM_ANCHORS.map((p, i) => <Anchor key={i} id={`term:${i}`} position={p} />)}
       </group>
-      {/* woven halo far behind, like a cloth hung in the dark */}
-      <mesh ref={ring} position={[0, 0, -10]} rotation-z={0.2} material={halo}>
-        <ringGeometry args={[4.2, 4.8, 128, 4]} />
-      </mesh>
-      <Sparkles count={120} scale={[14, 9, 6]} size={2.2} speed={0.25} color={group.color} opacity={0.6} />
+      <DotGrid size={30} step={0.5} y={-2.2} />
     </group>
   )
 }

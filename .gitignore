@@ -3,3 +3,7 @@ dist
 *.local
 *.tsbuildinfo
 .superpowers
+.impeccable/tmp
+.impeccable/questions
+.impeccable/review
+.impeccable/mocks

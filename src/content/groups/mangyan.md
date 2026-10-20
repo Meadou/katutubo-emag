@@ -7,7 +7,7 @@ lon: 121.05
 lat: 12.85
 color: #edae49
 tagline: Poets of the bamboo, keepers of an ancient script.
-objects: bamboo, bamboo, gong, spirits, loom
+objects: bamboo, bamboo, bamboo, spirits, loom
 draft: true
 ---
 

@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
+import { setTone } from '../hooks/useSections'
+
 export default function About() {
+  useEffect(() => setTone('dark'), [])
   return (
     <section className="about">
-      <p className="kicker">Colophon</p>
       <h1>About Katutubo</h1>
       <div className="prose">
         <p>
@@ -17,8 +20,8 @@ export default function About() {
         <h2>How it is made</h2>
         <p>
           A static website, with no database and no tracking. The 3D scenes are made with Three.js. The objects are simple stand-ins
-          that will be replaced by models built from reference images. Any sound labelled <em>synthesized</em> is generated in your
-          browser. It illustrates the instrument and is not a traditional recording.
+          that will be replaced by models built from reference images. Any sound labelled <em>synthesized</em> is generated in your browser. It illustrates the instrument and is not a
+          traditional recording.
         </p>
       </div>
     </section>
