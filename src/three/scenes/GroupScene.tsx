@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
-import type { Group } from '../../content'
+import { sceneObjectKeys, type Group } from '../../content'
 import { OBJECTS } from '../objects/registry'
 import { scrollState, useMag } from '../../store'
 import { createWeaveMaterial } from '../shaders/WeavePattern'
@@ -30,7 +30,7 @@ export default function GroupScene({ group }: { group: Group }) {
   const holder = useRef<THREE.Group>(null!)
   const ring = useRef<THREE.Mesh>(null!)
   const halo = useMemo(() => createWeaveMaterial(group.color, { wave: 0, brightness: 0.35 }), [group.color])
-  const keys = useMemo(() => [...new Set(group.chapters.map((c) => c.object))], [group])
+  const keys = useMemo(() => sceneObjectKeys(group), [group])
   const activeKey = group.chapters[chapter]?.object ?? keys[0]
   const wide = size.width > 900
 

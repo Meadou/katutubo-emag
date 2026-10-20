@@ -28,11 +28,11 @@ export default function IssueIndex() {
         <ol className="cards">
           {list.map((g, i) => (
             <li key={g.slug}>
-              <Link to={`/group/${g.slug}`} className="card" style={{ ['--c' as string]: g.color }}>
+              <Link to={`/group/${g.slug}`} className={`card ${g.placeholder ? 'card--soon' : ''}`} style={{ ['--c' as string]: g.color }}>
                 <span className="card__no">{String(i + 1).padStart(2, '0')}</span>
                 <span className="card__island">{g.islandGroup} · {g.island}</span>
                 <strong className="card__name">{g.name}</strong>
-                <span className="card__tag">{g.tagline}</span>
+                {g.placeholder ? <span className="card__soon">Coming soon</span> : <span className="card__tag">{g.tagline}</span>}
                 <span className="card__region">{g.region}</span>
               </Link>
             </li>

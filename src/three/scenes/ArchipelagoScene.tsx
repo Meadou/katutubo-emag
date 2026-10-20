@@ -31,7 +31,7 @@ function Island({ points }: { points: [number, number][] }) {
 
 function Marker({ group, index }: { group: Group; index: number }) {
   const [x, z] = toWorld(group.lon, group.lat)
-  const ring = useRef<THREE.Mesh>(null!)
+  const ring = useRef<THREE.Mesh>(null)
   const beam = useRef<THREE.Mesh>(null!)
   const hovered = useMag((s) => s.hovered === group.slug)
   const setHovered = useMag((s) => s.setHovered)
@@ -40,22 +40,27 @@ function Marker({ group, index }: { group: Group; index: number }) {
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime + index * 1.3
-    const s = 1 + ((t * 0.6) % 1) * 2.2
-    ring.current.scale.setScalar(s)
-    ;(ring.current.material as THREE.MeshBasicMaterial).opacity = 1 - ((t * 0.6) % 1)
+    // placeholders ("coming soon") sit quietly: no pulsing ring
+    if (ring.current) {
+      const s = 1 + ((t * 0.6) % 1) * 2.2
+      ring.current.scale.setScalar(s)
+      ;(ring.current.material as THREE.MeshBasicMaterial).opacity = 1 - ((t * 0.6) % 1)
+    }
     const target = hovered ? 1.6 : 1
     beam.current.scale.y += (target - beam.current.scale.y) * 0.12
   })
 
   return (
     <group position={[x, 0.3, z]}>
-      <mesh rotation-x={-Math.PI / 2} ref={ring}>
-        <ringGeometry args={[0.16, 0.2, 48]} />
-        <meshBasicMaterial color={color} transparent toneMapped={false} />
-      </mesh>
+      {!group.placeholder && (
+        <mesh rotation-x={-Math.PI / 2} ref={ring}>
+          <ringGeometry args={[0.16, 0.2, 48]} />
+          <meshBasicMaterial color={color} transparent toneMapped={false} />
+        </mesh>
+      )}
       <mesh ref={beam} position-y={0.6}>
         <cylinderGeometry args={[0.025, 0.06, 1.2, 12, 1, true]} />
-        <meshBasicMaterial color={color} transparent opacity={0.7} toneMapped={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={color} transparent opacity={group.placeholder ? 0.3 : 0.7} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
       <mesh
         position-y={1.25}
@@ -76,7 +81,7 @@ function Marker({ group, index }: { group: Group; index: number }) {
       <Html position={[0, 1.65, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
         <div className={`map-label ${hovered ? 'is-on' : ''}`} style={{ ['--c' as string]: group.color }}>
           <strong>{group.name}</strong>
-          <span>{group.region}</span>
+          <span>{group.placeholder ? 'Coming soon' : group.region}</span>
         </div>
       </Html>
     </group>

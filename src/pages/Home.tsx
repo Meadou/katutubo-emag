@@ -24,7 +24,7 @@ export default function Home() {
 
       <div className="cover__hint" aria-live="polite">
         {active ? (
-          <span style={{ color: active.color }}>{active.name}: {active.tagline}</span>
+          <span style={{ color: active.color }}>{`${active.name}: ${active.placeholder ? 'Coming soon' : active.tagline}`}</span>
         ) : (
           <span>Hover or tap a light</span>
         )}
@@ -49,6 +49,7 @@ export default function Home() {
             >
               <strong>{g.name}</strong>
               <span>{g.island}</span>
+              {g.placeholder && <span className="cover__soon">Soon</span>}
             </Link>
           </li>
         ))}

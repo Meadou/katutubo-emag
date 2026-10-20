@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getGroup, groups } from '../content'
+import { getGroup, nextIssue } from '../content'
 import { useMag } from '../store'
 import MusicPlayer from '../components/MusicPlayer'
 
@@ -13,7 +13,7 @@ export default function Article() {
 
   // The chapter whose section crosses the middle of the screen drives the 3D object.
   useEffect(() => {
-    if (!group) return
+    if (!group || group.placeholder) return
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) if (e.isIntersecting) setChapter(Number((e.target as HTMLElement).dataset.i))
@@ -33,8 +33,28 @@ export default function Article() {
     )
   }
 
-  const idx = groups.indexOf(group)
-  const next = groups[(idx + 1) % groups.length]
+  const next = nextIssue(group.slug)
+
+  if (group.placeholder) {
+    return (
+      <article className="article article--soon" style={{ ['--c' as string]: group.color }}>
+        <header className="article__hero">
+          <p className="kicker">{group.region}</p>
+          <h1>{group.name}</h1>
+          <p className="article__tagline">Coming soon</p>
+          <p className="article__soon">
+            This issue is still being prepared. Its stories, music and crafts will be shared here once they have been gathered and checked with care.
+          </p>
+        </header>
+        {next && (
+          <footer className="next">
+            <p className="kicker">Read a finished issue</p>
+            <Link to={`/group/${next.slug}`} style={{ color: next.color }}>{next.name} →</Link>
+          </footer>
+        )}
+      </article>
+    )
+  }
 
   return (
     <article className="article" style={{ ['--c' as string]: group.color }}>
@@ -78,7 +98,7 @@ export default function Article() {
         </section>
       )}
 
-      {next !== group && (
+      {next && (
         <footer className="next">
           <p className="kicker">Next issue</p>
           <Link to={`/group/${next.slug}`} style={{ color: next.color }}>{next.name} →</Link>
