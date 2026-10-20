@@ -27,6 +27,8 @@ export interface Group {
   color: string
   tagline: string
   draft: boolean
+  /** "Coming soon" issue: listed everywhere, but its body is not published yet */
+  placeholder: boolean
   /** optional licensed recording in /public/audio, e.g. `audio: audio/tboli-hegelung.mp3` */
   audio: string | null
   chapters: Chapter[]
@@ -56,8 +58,9 @@ const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').repla
 
 export function parseGroup(raw: string): Group {
   const { meta, body } = parseFrontmatter(raw)
+  const placeholder = meta.placeholder === 'true'
   const objects = (meta.objects ?? 'spirits').split(',').map((s) => s.trim()).filter(Boolean)
-  const parts = body.split(/^## +/m).slice(1)
+  const parts = placeholder ? [] : body.split(/^## +/m).slice(1)
   const chapters: Chapter[] = []
   let sources: string | null = null
   for (const part of parts) {
@@ -78,6 +81,7 @@ export function parseGroup(raw: string): Group {
     color: meta.color ?? '#d9a441',
     tagline: meta.tagline ?? '',
     draft: meta.draft === 'true',
+    placeholder,
     audio: meta.audio || null,
     chapters,
     sources,
@@ -89,3 +93,20 @@ export const groups: Group[] = Object.values(files)
   .sort((a, b) => b.lat - a.lat) // north → south, like turning the pages down the archipelago
 
 export const getGroup = (slug: string) => groups.find((g) => g.slug === slug)
+
+/** The next finished (non-placeholder) issue after `slug`, wrapping around; null if there is none. */
+export function nextIssue(slug: string, list: Group[] = groups): Group | null {
+  const i = list.findIndex((g) => g.slug === slug)
+  if (i < 0) return null
+  for (let k = 1; k < list.length; k++) {
+    const g = list[(i + k) % list.length]
+    if (!g.placeholder) return g
+  }
+  return null
+}
+
+/** Unique 3D object keys a group's scene shows, in chapter order; placeholders get the spirits. */
+export function sceneObjectKeys(group: Group): string[] {
+  const keys = [...new Set(group.chapters.map((c) => c.object))]
+  return keys.length ? keys : ['spirits']
+}
