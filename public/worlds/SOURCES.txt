@@ -1,0 +1,3 @@
+Elevation: Terrain Tiles on AWS Open Data (Terrarium encoding), built from SRTM, GMTED2010, ETOPO1 and other open sources.
+https://registry.opendata.aws/terrain-tiles/
+Contours: d3-contour. terraces.json is a procedural model, not a survey of any place.
