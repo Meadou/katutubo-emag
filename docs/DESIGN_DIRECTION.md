@@ -19,26 +19,20 @@
 
 **Motion language.**
 - Sheets slide apart in parallax as the camera moves, eased exponentially and never linear. Text arrives strip by strip, staggered like paper sliding into place.
-- The signature move: the camera dives from the whole archipelago through banks of paper cloud into the Cordillera at sunrise, and the map's coarse sheets give way to the finer ones behind the clouds.
+- The signature move: one paper map, zoomed. The journey starts on the whole archipelago, comes down to each island group at mid zoom, down to each people's land and back up, on one smooth pan-and-zoom path.
 - Sacred objects, rituals and spirits never move. In Beliefs & Rituals even the camera stops drifting.
 
 ## What shipped
 
-- **Modes.** Live 3D in two tiers: *high* has shadow maps and full resolution; *lite* is for touch-first or modest devices, and any device steps down to it when its frame rate falls. A device still under about 18 fps in the lite tier switches to the static journey for the rest of the visit. The static journey (no WebGL, reduced motion, or too slow) draws the same worlds as flat SVG paper.
-- **Light.** The palettes give each time of day its colour. The sky light is a pale tint of the whole sky, so dusk, evening and night stay readable instead of sinking to black.
-- **Demos per chapter.** Region mini-map, a story in stages, the seven-syllable line (Mangyan), interlocking flat gongs (Ifugao), bossed gongs (T'boli), a plucked two-string lute (Mangyan, no gongs), a weave structure, and a still "Read slowly" card for Beliefs. When a Beliefs chapter names key terms, the card shows the sentence each term comes from. When it names none (Mangyan, T'boli), it reads the chapter one sentence at a time.
-
-## Notes for PRODUCT.md
-
-Updated to match the build. Every rule (respect, honesty, accessibility) is unchanged.
-- Reduced motion now serves the static paper journey rather than "no camera drift, instant fly-in" in 3D.
-- "Spirits" is no longer an animated 3D object. Beliefs chapters are given stillness.
-- The 3D objects live in `src/stage/props/`; the terraces are the one hero model.
-- Interface strings are in `src/i18n/en.ts`, which is ready for a Filipino file.
+- **One map, nine peoples.** A single paper map of the archipelago (six contour sheets and Lake Lanao), zoomed in and out between nine stops: Kalinga, Ifugao, Bugkalot · Suludnon, Ati, Magahat · Maranao, T'boli, Sama Dilaut. Ifugao and T'boli carry their chapters; the others are "Coming soon". Stops sit at a distance where the map still reads as paper relief.
+- **Loading screen.** Shown from the first paint (static HTML), it waits for the fonts, the map, every sheet built and the shaders compiled, so nothing stalls once the journey starts. It steps aside after 12 s whatever happens.
+- **Performance.** Each map sheet is two draw calls (tops, cut edges), however many islands it holds; shadows are redrawn only when something that casts or frames them moves; the page is never re-styled from the root per frame. On an Intel UHD laptop the journey runs at about 45–60 fps.
+- **Modes.** Live 3D in two tiers: *high* has shadow maps; *lite* is for touch-first or modest devices, and any device steps down to it when its frame rate falls. A device still under about 18 fps in the lite tier switches to the static journey (flat SVG paper), as do browsers without WebGL and readers who prefer reduced motion.
+- **Objects.** The gong stand and the loom, simple paper stand-ins at map scale, rise in their chapters. Beliefs chapters are given stillness. More simple objects can come later.
+- **Demos per chapter.** Region mini-map, a story in stages, interlocking flat gongs (Ifugao), bossed gongs (T'boli), a weave structure, and a still "Read slowly" card for Beliefs.
 
 ## Not finished
 
-- Facts are still draft: all three issues need checking against community, NCIP and academic sources.
+- Facts are still draft: both issues need checking against community, NCIP and academic sources; the other seven peoples are "Coming soon".
 - No language switch yet (English only).
-- Gong, bamboo and loom are simple paper stand-ins, not finished models.
-- On a CPU throttled 4× at phone size, the fly-in runs at about 15–25 fps while the region's sheets are built; it stays in 3D (lite tier), above the static cutoff.
+- The gong and loom are simple stand-ins, not finished models.
