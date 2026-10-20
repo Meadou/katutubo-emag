@@ -12,7 +12,7 @@ export interface Chapter {
   id: string
   title: string
   html: string
-  /** 3D object key shown while this chapter is on screen (see three/objects/registry) */
+  /** 3D object key from the `objects:` frontmatter line, for chapter models dropped in with fromFactory */
   object: string
   /** the chapter's **bold** key terms, shown as callouts pinned around its 3D object */
   terms: string[]

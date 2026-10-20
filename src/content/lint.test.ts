@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { groups } from '.'
 import { ISLANDS, pointInIsland } from '../three/archipelago'
-import { OBJECTS } from '../three/objects/registry'
 
 describe('content lint', () => {
   it('slugs are unique and url-safe', () => {
@@ -16,7 +15,6 @@ describe('content lint', () => {
     if (!g.placeholder) {
       expect(g.chapters.length, `${slug}: no chapters`).toBeGreaterThan(0)
       expect(g.sources, `${slug}: no Sources section`).not.toBeNull()
-      for (const c of g.chapters) expect(Object.keys(OBJECTS), `${slug}: unknown object "${c.object}"`).toContain(c.object)
     }
   })
   it('covers Luzon, Visayas and Mindanao', () => {

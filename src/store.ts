@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 import type { IslandGroup } from './content'
+import type { StageSpec } from './three/stageSpec'
 
 /** Which part of the archipelago the cover's scroll story is looking at. */
 export type CoverFocus = 'all' | IslandGroup
+
+/** Where a page wants the camera: a point on the map (lon/lat), how far away, and how steeply it looks down. */
+export interface Shot { lon: number; lat: number; dist: number; tilt?: number; yaw?: number }
 
 /** Shared state between the DOM magazine and the 3D canvas behind it. */
 interface MagState {
@@ -16,6 +20,15 @@ interface MagState {
   flyTo: string | null
   /** cover section on screen: the whole archipelago or one island group */
   coverFocus: CoverFocus
+  /** camera override set by the story pages; null lets the scene decide */
+  shot: Shot | null
+  /** sound on/off for every instrument and the ambience */
+  sound: boolean
+  /** figures, instruments and cards the current story step places on the map */
+  stage: StageSpec | null
+  setStage: (s: StageSpec | null) => void
+  setShot: (s: Shot | null) => void
+  setSound: (on: boolean) => void
   setScene: (s: string) => void
   setChapter: (i: number) => void
   setHovered: (s: string | null) => void
@@ -29,6 +42,12 @@ export const useMag = create<MagState>((set) => ({
   hovered: null,
   flyTo: null,
   coverFocus: 'all',
+  shot: null,
+  sound: false,
+  stage: null,
+  setStage: (stage) => set({ stage }),
+  setShot: (shot) => set({ shot }),
+  setSound: (sound) => set({ sound }),
   setScene: (scene) => set({ scene, chapter: 0, flyTo: null, coverFocus: 'all' }),
   setChapter: (chapter) => set({ chapter }),
   setHovered: (hovered) => set({ hovered }),

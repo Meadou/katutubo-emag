@@ -7,6 +7,8 @@ import Home from './pages/Home'
 import IssueIndex from './pages/IssueIndex'
 import Article from './pages/Article'
 import About from './pages/About'
+import People from './pages/People'
+import SoundToggle from './components/SoundToggle'
 import { prefersReducedMotion, scrollState, useMag } from './store'
 
 // three.js + effects are the heavy part of the bundle; load them after the page shell.
@@ -29,7 +31,7 @@ function useSceneSync() {
   const flyTo = useMag((s) => s.flyTo)
 
   useEffect(() => {
-    const m = pathname.match(/^\/group\/([^/]+)/)
+    const m = pathname.match(/^\/(?:group|people)\/([^/]+)/)
     setScene(m ? m[1] : pathname.startsWith('/issues') ? 'index' : 'home')
     window.scrollTo(0, 0)
     scrollState.progress = 0
@@ -37,7 +39,8 @@ function useSceneSync() {
 
   useEffect(() => {
     if (!flyTo) return
-    const t = setTimeout(() => navigate(`/group/${flyTo}`), prefersReducedMotion() ? 0 : 1100)
+    // the camera starts its zoom on the map; the page follows once it is most of the way down
+    const t = setTimeout(() => navigate(`/people/${flyTo}`), prefersReducedMotion() ? 0 : 900)
     return () => clearTimeout(t)
   }, [flyTo, navigate])
 
@@ -53,7 +56,6 @@ function useSceneSync() {
 
 export default function App() {
   const [webgl] = useState(hasWebGL)
-  const flying = useMag((s) => s.flyTo !== null)
   useSceneSync()
 
   return (
@@ -65,12 +67,13 @@ export default function App() {
       ) : (
         <NoWebGLFallback />
       )}
-      <div className={`veil ${flying ? 'is-on' : ''}`} aria-hidden="true" />
       <Nav />
+      <SoundToggle />
       <main className="pages">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/issues" element={<IssueIndex />} />
+          <Route path="/people/:slug/:step?" element={<People />} />
           <Route path="/group/:slug" element={<Article />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<Home />} />

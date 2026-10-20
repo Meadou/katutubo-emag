@@ -4,10 +4,8 @@ import { getGroup, nextIssue } from '../content'
 import { frameState, useMag } from '../store'
 import { setTone, useSections } from '../hooks/useSections'
 import MusicPlayer from '../components/MusicPlayer'
-import Callouts from '../components/Callouts'
 import Panel from '../components/Panel'
 import { ArrowRight } from '../components/Icon'
-import { TERM_ANCHORS } from '../three/anchors'
 import { coords } from '../format'
 
 /** Chapters alternate grounds, the way the scroll story does: bone, charcoal, bone… */
@@ -73,19 +71,6 @@ export default function Article() {
     )
   }
 
-  const current = group.chapters[chapter]
-  const terms = (current?.terms ?? []).slice(0, TERM_ANCHORS.length)
-
-  // A callout click finds the term in the chapter text and briefly marks it.
-  const showTerm = (term: string) => {
-    const strong = [...(refs.current[chapter]?.querySelectorAll('strong') ?? [])].find((s) => s.textContent?.trim() === term)
-    if (!strong) return
-    strong.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    strong.classList.remove('is-flash')
-    void strong.offsetWidth
-    strong.classList.add('is-flash')
-  }
-
   const go = (i: number) => (e: MouseEvent) => {
     e.preventDefault()
     refs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -128,8 +113,6 @@ export default function Article() {
           <Link to={`/group/${next.slug}`} style={{ ['--c' as string]: next.color }}>{next.name} <ArrowRight /></Link>
         </footer>
       )}
-
-      <Callouts items={terms.map((t, i) => ({ id: `term:${i}`, label: t, onSelect: () => showTerm(t) }))} />
 
       <Panel label="Reading position">
         <nav aria-label="Chapters">
