@@ -31,3 +31,16 @@ export const ISLANDS: Record<string, [number, number][]> = {
     [124.9, 5.9], [124.2, 6.2], [124.1, 7.0], [123.6, 7.7], [123.0, 7.5], [122.5, 7.4], [122.3, 7.0],
   ],
 }
+
+/** True when [lon, lat] falls inside the named island's outline (even-odd ray cast). */
+export function pointInIsland(island: string, lon: number, lat: number): boolean {
+  const poly = ISLANDS[island]
+  if (!poly || !Number.isFinite(lon) || !Number.isFinite(lat)) return false
+  let inside = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]
+    const [xj, yj] = poly[j]
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
