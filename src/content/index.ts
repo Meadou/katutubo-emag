@@ -43,7 +43,8 @@ export interface Group {
 
 const files = import.meta.glob('./groups/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 
-const ISLAND_GROUP: Record<string, IslandGroup> = {
+/** Which island group each island belongs to (Mindoro and Palawan are part of the Luzon group). */
+export const ISLAND_GROUP: Record<string, IslandGroup> = {
   Luzon: 'Luzon', Mindoro: 'Luzon', Palawan: 'Luzon',
   Panay: 'Visayas', Negros: 'Visayas', Cebu: 'Visayas', Bohol: 'Visayas', Samar: 'Visayas', Leyte: 'Visayas',
   Mindanao: 'Mindanao', Sulu: 'Mindanao', 'Tawi-Tawi': 'Mindanao',

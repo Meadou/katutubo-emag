@@ -12,19 +12,25 @@ export function fitDist(spanW: number, spanH: number, aspect: number) {
   return Math.max(spanH / (2 * HALF), spanW / (2 * HALF * aspect)) * 1.06
 }
 
-/** The whole archipelago, looking almost straight down. */
+/** The whole archipelago, centred on screen and looking almost straight down. */
 export const archipelagoCamera = (aspect: number, lean?: { lon: number; lat: number }, k = 0): Camera => {
   const dist = fitDist(11, 16.6, aspect)
-  // on wide screens the opening card takes the left, so the islands sit right of centre
-  const shift = aspect > 1.15 ? 2 * HALF * dist * aspect * 0.17 : 0
   return {
-    lon: PH.lon + ((lean?.lon ?? PH.lon) - PH.lon) * k - shift,
+    lon: PH.lon + ((lean?.lon ?? PH.lon) - PH.lon) * k,
     lat: PH.lat + ((lean?.lat ?? PH.lat) - PH.lat) * k,
     dist,
     tilt: 0.18,
     yaw: 0,
   }
 }
+
+/**
+ * A camera zoomed in by `k` (0..1) about one point of the map: that point keeps its place on screen,
+ * like zooming a map toward the pointer.
+ */
+export const zoomAbout = (c: Camera, at: { lon: number; lat: number }, k: number): Camera => ({
+  ...c, lon: at.lon + (c.lon - at.lon) * k, lat: at.lat + (c.lat - at.lat) * k, dist: c.dist * k,
+})
 
 const world = (time: TimeName, rest: Omit<WorldState, keyof (typeof TIMES)['midday']>): WorldState => ({ ...TIMES[time], ...rest })
 
@@ -40,7 +46,7 @@ export const plainWorlds = (aspect: number, time: TimeName = 'midday'): Record<s
 export const REGIONS: IslandGroup[] = ['Luzon', 'Visayas', 'Mindanao']
 
 /** Each island group seen whole at "mid zoom": the view the journey returns to between its peoples. */
-const REGION_VIEW: Record<IslandGroup, { lon: number; lat: number; w: number; h: number }> = {
+export const REGION_VIEW: Record<IslandGroup, { lon: number; lat: number; w: number; h: number }> = {
   Luzon: { lon: 121.25, lat: 16.8, w: 2.7, h: 3.8 },
   Visayas: { lon: 122.7, lat: 10.45, w: 1.9, h: 2.9 },
   Mindanao: { lon: 122.5, lat: 6.75, w: 5.4, h: 3.7 },

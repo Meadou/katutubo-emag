@@ -8,17 +8,15 @@ export const en = {
     masthead: 'the first peoples of the islands',
     skip: 'Skip to the story',
   },
-  nav: { label: 'Main', cover: 'Journey', issues: 'Issues', about: 'About', sound: 'Sound', on: 'on', off: 'off', soundOn: 'Sound on', soundOff: 'Sound off' },
+  nav: {
+    label: 'Main', cover: 'Journey', issues: 'Issues', about: 'About', sound: 'Sound', on: 'on', off: 'off',
+    soundNote: 'Wind and water, synthesized in your browser. Not a recording.',
+  },
   intro: {
     over: 'Issue 01 · An e-magazine',
     lede: 'A journey to nine Indigenous Peoples of the Philippines: three in Luzon, three in the Visayas and three in Mindanao.',
-    sound: 'For an even more immersive experience, turn on sound.',
-    soundNote: 'Wind and water are synthesized in your browser, and instruments play only when you tap them. Nothing here is a recording.',
     begin: 'Begin the journey',
     cue: 'or scroll',
-    jump: 'Or go straight to a people',
-    listLabel: 'Peoples in Katutubo',
-    soon: 'Coming soon',
   },
   regions: {
     Luzon: 'Masters of the Mist, Rice, and Rivers',

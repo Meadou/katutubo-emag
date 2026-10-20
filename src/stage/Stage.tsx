@@ -4,6 +4,7 @@ import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import PaperLand from './PaperLand'
 import Pins from './Pins'
+import MapHotspots from './MapHotspots'
 import Props from './Props'
 import StaticWorld from '../static/StaticWorld'
 import { journey } from '../worlds/engine'
@@ -155,6 +156,7 @@ export default function Stage() {
           <Light shadows={shadows} />
           <Lands shadows={shadows} onReady={onReady} />
           <Pins />
+          <MapHotspots />
           <Props />
         </Canvas>
       </div>

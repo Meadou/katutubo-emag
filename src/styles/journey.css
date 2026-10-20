@@ -3,7 +3,8 @@
 .sec--plain { align-items: flex-start; padding-top: 14vh; }
 /* the zooms carry no text: the camera moves while the page scrolls */
 .sec--zoom { display: block; min-height: 95svh; padding: 0; }
-.sec--intro { padding-top: 12vh; padding-bottom: 10vh; }
+/* the journey rail sits along the bottom from the first screen: the opening card clears it */
+.sec--intro { padding-top: 12vh; padding-bottom: max(10vh, 96px); }
 .sec--region { min-height: 120svh; align-items: flex-end; padding-bottom: 18vh; }
 .sec--people { min-height: 150svh; align-items: flex-end; padding-bottom: 20vh; }
 .sec--sources { min-height: 120svh; }
@@ -12,29 +13,20 @@
 /* the land is the subject: cards keep to the edges and stay narrow, so the centre belongs to the 3D */
 .card--region, .card--people, .card--sources, .card--end { width: min(100%, 24rem); }
 
+/* the map behind the page takes the pointer (pins, island groups) wherever there is no paper on top */
+.pages, .journey, .journey .sec { pointer-events: none; }
+.card, .demo-slot, .rail { pointer-events: auto; }
+
 /* ---------- the opening ---------- */
-.card--masthead { width: min(100%, 36rem); }
+/* narrow enough that every people's pin stays clear of it on a laptop screen */
+.card--masthead { width: min(100%, 32rem); }
 .card--masthead h1 { margin-top: 8px; font-size: clamp(54px, 6.6vw, 100px); line-height: 0.9; }
 .masthead { margin-top: 10px; font: 400 clamp(20px, 1.9vw, 26px)/1.2 var(--display); color: var(--ink-soft); }
-.sound-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 22px; }
-.sound-ask p { font-weight: 600; max-width: 30ch; }
-.sound-note { margin-top: 8px; max-width: 46ch; font-size: 14px; color: var(--ink-soft); }
 .btn--quiet { color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
-.btn--quiet.is-on { background: var(--paper-deep); }
 .sound-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; }
 .is-on > .sound-dot { background: var(--accent); border-color: var(--ink); }
 .begin { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; }
 .begin .cue { margin-top: 0; padding-bottom: 6px; }
-.peoples { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 18px; }
-.peoples__jump { grid-column: 1 / -1; margin-bottom: 6px; font: 600 14px/1.4 var(--text); color: var(--ink-soft); }
-.peoples__group h2 { font: 700 12px/1.6 var(--text); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
-.peoples ul { list-style: none; margin: 4px 0 0; padding: 0; }
-.people {
-  display: block; padding: 4px 0 4px 10px; border-left: 3px solid var(--c); text-decoration: none; font: 400 19px/1.25 var(--display);
-  transition: padding 0.35s var(--ease-out), background-color 0.25s ease;
-}
-.people:hover, .people:focus-visible, .people.is-on { padding-left: 16px; background: color-mix(in srgb, var(--c) 14%, transparent); }
-.people.is-soon { color: var(--ink-soft); border-left-style: dashed; }
 
 /* ---------- an island group, and a people's stop ---------- */
 .card--region h2 { margin-top: 6px; font-size: clamp(28px, 2.6vw, 38px); line-height: 1.02; }
@@ -83,12 +75,7 @@
 .end__links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 
 /* ---------- the journey rail: every stop along the bottom ---------- */
-.rail {
-  position: fixed; z-index: 9; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: calc(100vw - 2 * var(--gutter));
-  transition: opacity 0.4s ease, transform 0.6s var(--ease-out);
-}
-/* out of sight (and out of the tab order) until the journey begins */
-.rail.is-away { opacity: 0; visibility: hidden; transform: translate(-50%, 24px); transition: opacity 0.3s ease, transform 0.4s ease, visibility 0s linear 0.4s; }
+.rail { position: fixed; z-index: 9; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: calc(100vw - 2 * var(--gutter)); }
 .rail ol { list-style: none; margin: 0; padding: 0; display: flex; }
 .rail__stops, .rail__chapters { padding: 4px; gap: 4px; border-radius: 3px; background: color-mix(in srgb, var(--paper) 80%, transparent); box-shadow: var(--shadow-card); }
 .rail__region { display: flex; align-items: center; gap: 2px; }
@@ -106,6 +93,13 @@
 .nav__sound { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 0; border-radius: 2px; background: none; cursor: pointer; font: 600 14px/1 var(--text); color: var(--ink-soft); }
 .nav__sound:hover { color: var(--ink); }
 .nav__sound.is-on { color: var(--ink); background: var(--paper-deep); }
+/* what the sound is, said for a few seconds when it is turned on */
+.nav__note {
+  position: absolute; top: calc(100% + 8px); right: 0; max-width: min(22rem, calc(100vw - 2 * var(--gutter)));
+  padding: 7px 12px; background: var(--paper) var(--grain); border-radius: 3px; box-shadow: var(--shadow-card);
+  font: 600 13px/1.4 var(--text); color: var(--ink);
+}
+.nav__note:empty { display: none; }
 
 /* ---------- index and about ---------- */
 .card--index, .card--about { width: min(100%, 52rem); margin: 0 auto; }
@@ -127,15 +121,13 @@
 /* ---------- phones: cards stack, the land shows between them ---------- */
 @media (max-width: 860px) {
   .sec { padding: 12vh var(--gutter); }
-  .sec--intro { align-items: flex-end; padding-top: 40vh; padding-bottom: 8vh; }
+  .sec--intro { align-items: flex-end; padding-top: 40vh; padding-bottom: max(8vh, 84px); }
   .sec--people, .sec--region { padding-bottom: 14vh; }
   .sec--chapter { grid-template-columns: 1fr; min-height: auto; padding-top: 34vh; padding-bottom: 40vh; gap: 28px; }
   .sec--chapter .chapter-card, .sec--chapter .demo-slot,
   .sec--chapter.is-flipped .chapter-card, .sec--chapter.is-flipped .demo-slot { grid-column: 1; grid-row: auto; }
   .demo-slot { position: static; }
-  .peoples { grid-template-columns: 1fr 1fr; }
   .rail { left: var(--gutter); right: var(--gutter); transform: none; align-items: stretch; bottom: 10px; }
-  .rail.is-away { transform: translateY(24px); }
   /* the top tab has to fit a phone: tighter links, and the sound switch shows its state by its dot */
   .nav__links a, .nav__sound { padding: 6px 7px; font-size: 13px; }
   .nav__sound-state { display: none; }

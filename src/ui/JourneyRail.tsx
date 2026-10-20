@@ -13,15 +13,15 @@ export default function JourneyRail({ sections, worlds }: { sections: Section[];
   const near = useNearest()
   const here = worlds[near]?.people ?? sections.find((s) => s.id === near && s.kind === 'zoom' && s.id.startsWith('down-'))?.id.slice(5)
   const people = groups.find((g) => g.slug === here)
-  const go = (id: string, hash: string) => (e: MouseEvent) => {
+  const go = (id: string, hash: string, block: ScrollLogicalPosition = 'start') => (e: MouseEvent) => {
     e.preventDefault()
-    goToSection(id)
+    goToSection(id, true, block)
     history.replaceState(null, '', hash)
   }
   const s = strings.journey
   return (
-    // the opening card already lists every people; the rail arrives once the journey begins
-    <nav className={`rail ${near === 'intro' ? 'is-away' : ''}`} aria-label={s.rail}>
+    // on screen from the start: it is the keyboard and screen-reader route to every people
+    <nav className="rail" aria-label={s.rail}>
       {people && !people.placeholder && (
         <ol className="rail__chapters" aria-label={`${people.name}: ${s.chapters}`}>
           {people.chapters.map((c) => {
@@ -42,7 +42,7 @@ export default function JourneyRail({ sections, worlds }: { sections: Section[];
             <ol aria-label={r}>
               {groups.filter((g) => g.islandGroup === r).map((g) => (
                 <li key={g.slug}>
-                  <a href={`#/group/${g.slug}`} onClick={go(stopId(g.slug), `#/group/${g.slug}`)} style={{ ['--c' as string]: g.color }}
+                  <a href={`#/group/${g.slug}`} onClick={go(stopId(g.slug), `#/group/${g.slug}`, 'end')} style={{ ['--c' as string]: g.color }}
                     className={`${here === g.slug ? 'is-on' : ''} ${g.placeholder ? 'is-soon' : ''}`} aria-current={here === g.slug ? 'location' : undefined}>
                     {g.name}
                   </a>

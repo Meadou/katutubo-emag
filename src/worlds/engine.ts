@@ -137,9 +137,12 @@ export function useNearest() {
   )
 }
 
-/** Scroll a section into view by id, honouring reduced motion. */
-export function goToSection(id: string, smooth = true) {
+/**
+ * Scroll a section into view by id, honouring reduced motion. `block: 'end'` lands on a section whose
+ * card sits at its foot (a people's stop), so the card is on screen on arrival.
+ */
+export function goToSection(id: string, smooth = true, block: ScrollLogicalPosition = 'start') {
   const el = document.getElementById(id)
   if (!el) return
-  el.scrollIntoView({ behavior: smooth && !journey.calm ? 'smooth' : 'auto', block: 'start' })
+  el.scrollIntoView({ behavior: smooth && !journey.calm ? 'smooth' : 'auto', block })
 }

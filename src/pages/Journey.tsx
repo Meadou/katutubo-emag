@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getGroup, groups, type Group } from '../content'
-import { goToSection, journey, useJourney } from '../worlds/engine'
-import { REGIONS, buildJourney, chapterId, fitDist, sectionFor, type Section } from '../worlds/journeys'
+import { goToSection, journey, useJourney, useNearest } from '../worlds/engine'
+import { REGIONS, REGION_VIEW, archipelagoCamera, buildJourney, chapterId, sectionFor, zoomAbout, type Section } from '../worlds/journeys'
 import { DESIGNS } from '../worlds/issues'
 import { useAspect } from '../worlds/useAspect'
 import { ChapterCard } from '../ui/ChapterCard'
@@ -29,13 +29,16 @@ export default function Journey() {
     const g = slug ? getGroup(slug) : undefined
     if (!g) { window.scrollTo(0, 0); return }
     const ch = chapter && g.chapters.some((c) => c.id === chapter) ? chapter : undefined
-    requestAnimationFrame(() => goToSection(sectionFor(g.slug, ch), false))
+    // a people's stop is met at its foot, where its card is; a chapter from its top
+    requestAnimationFrame(() => goToSection(sectionFor(g.slug, ch), false, ch ? 'start' : 'end'))
   }, [slug, chapter])
 
   return (
     <article ref={root} className="journey">
-      {sections.map((s) => <JourneySection key={s.id} s={s} aspect={aspect} />)}
+      {/* the rail comes right after the opening card in the page, so it is the next stop for the Tab key (it is fixed on screen) */}
+      {sections.slice(0, 1).map((s) => <JourneySection key={s.id} s={s} aspect={aspect} />)}
       <JourneyRail sections={sections} worlds={worlds} />
+      {sections.slice(1).map((s) => <JourneySection key={s.id} s={s} aspect={aspect} />)}
     </article>
   )
 }
@@ -52,19 +55,25 @@ function JourneySection({ s, aspect }: { s: Section; aspect: number }) {
   }
 }
 
-/** What Katutubo is, the sound prompt, the way in, and every people as a link (the keyboard and screen-reader route). */
+/**
+ * What Katutubo is, in one card, and the way in. The journey rail is the keyboard and screen-reader
+ * route to every people; on the map, pointing at a pin or an island group leans the opening view.
+ */
 function Intro({ aspect }: { aspect: number }) {
   const s = strings.intro
-  const sound = useUi((u) => u.sound)
-  const setSound = useUi((u) => u.setSound)
+  const near = useNearest()
   const hovered = useUi((u) => u.hovered)
+  const region = useUi((u) => u.hoveredRegion)
   const setHovered = useUi((u) => u.setHovered)
-  // pointing at a people leans the opening view toward their place
+  const setRegion = useUi((u) => u.setHoveredRegion)
+  // the lean belongs to the opening view only: pointing at a pin zooms toward that people, at an island
+  // group a little toward it. It zooms about the thing pointed at, so it stays under the pointer to be chosen.
   useEffect(() => {
     const g = groups.find((x) => x.slug === hovered)
-    journey.focus = g ? { lon: g.lon, lat: g.lat - 0.4, dist: fitDist(11, 16.6, aspect) * 0.5, tilt: 0.42, yaw: 0 } : null
-  }, [hovered, aspect])
-  useEffect(() => () => { journey.focus = null; setHovered(null) }, [setHovered])
+    const anchor = g ?? (region ? REGION_VIEW[region] : null)
+    journey.focus = near === 'intro' && anchor ? zoomAbout(archipelagoCamera(aspect), anchor, g ? 0.6 : 0.78) : null
+  }, [hovered, region, near, aspect])
+  useEffect(() => () => { journey.focus = null; setHovered(null); setRegion(null) }, [setHovered, setRegion])
 
   return (
     <div id="intro" data-world="intro" className="sec sec--intro">
@@ -73,37 +82,10 @@ function Intro({ aspect }: { aspect: number }) {
         <h1>{strings.site.name}</h1>
         <p className="masthead">{strings.site.masthead}</p>
         <p className="lede">{s.lede}</p>
-        <div className="sound-ask">
-          <p>{s.sound}</p>
-          <button type="button" className={`btn btn--quiet ${sound ? 'is-on' : ''}`} aria-pressed={sound} onClick={() => setSound(!sound)}>
-            <span className="sound-dot" aria-hidden="true" />{sound ? strings.nav.soundOn : strings.nav.soundOff}
-          </button>
-        </div>
-        <p className="sound-note">{s.soundNote}</p>
         <div className="begin">
           <button type="button" className="btn btn--big" onClick={() => goToSection(`region-${REGIONS[0].toLowerCase()}`)}>{s.begin}</button>
           <ScrollCue label={s.cue} />
         </div>
-        <nav className="peoples" aria-label={s.listLabel}>
-          <p className="peoples__jump">{s.jump}</p>
-          {REGIONS.map((r) => (
-            <div key={r} className="peoples__group">
-              <h2>{r}</h2>
-              <ul>
-                {groups.filter((g) => g.islandGroup === r).map((g) => (
-                  <li key={g.slug}>
-                    <Link to={`/group/${g.slug}`} className={`people ${g.placeholder ? 'is-soon' : ''} ${hovered === g.slug ? 'is-on' : ''}`}
-                      style={{ ['--c' as string]: g.color }}
-                      onMouseEnter={() => setHovered(g.slug)} onMouseLeave={() => setHovered(null)}
-                      onFocus={() => setHovered(g.slug)} onBlur={() => setHovered(null)}>
-                      {g.name}{g.placeholder && <span className="visually-hidden">, {s.soon}</span>}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
       </header>
     </div>
   )

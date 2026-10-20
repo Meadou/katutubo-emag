@@ -9,19 +9,24 @@ const at = (path: string) => render(<MemoryRouter initialEntries={[path]}><App /
 const stop = (slug: string) => document.getElementById(`stop-${slug}`)!
 
 describe('the journey', () => {
-  it('opens with what Katutubo is, the sound prompt and the way in', () => {
+  it('opens with what Katutubo is and the way in, and nothing more', () => {
     at('/')
     expect(screen.getByRole('heading', { level: 1, name: 'Katutubo' })).toBeInTheDocument()
-    expect(screen.getByText(/turn on sound/)).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Sound off/ }).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Begin the journey' })).toBeInTheDocument()
+    expect(screen.queryByText(/turn on sound/)).toBeNull()
+    // the one sound switch is in the nav
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+    expect(within(nav).getByRole('button', { name: /Sound/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('lists every people as a link: the keyboard and screen-reader route', () => {
+  it('lists every people in the rail from the first screen: the keyboard and screen-reader route', () => {
     at('/')
-    const list = screen.getByRole('navigation', { name: 'Peoples in Katutubo' })
-    const links = within(list).getAllByRole('link')
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `/group/${g.slug}`))
+    const rail = screen.getByRole('navigation', { name: 'Journey' })
+    expect(within(rail).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `#/group/${g.slug}`))
+    // it comes right after the opening card in the page, so Tab reaches it before any chapter
+    const firstRegion = document.getElementById('region-luzon')!
+    expect(rail.compareDocumentPosition(firstRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Begin the journey' }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('visits nine peoples, three in each island group, north to south', () => {

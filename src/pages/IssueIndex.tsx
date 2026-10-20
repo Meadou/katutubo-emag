@@ -43,7 +43,7 @@ export default function IssueIndex() {
                     <span className="row__where">{g.islandGroup} · {g.region}</span>
                     <span className="row__coords nums">{coords(g)}</span>
                     {g.angle && <span className="row__tag">{g.angle}</span>}
-                    {g.placeholder && <span className="soon-tag">{strings.intro.soon}</span>}
+                    {g.placeholder && <span className="soon-tag">{strings.soon.title}</span>}
                   </Link>
                 </li>
               ))}
