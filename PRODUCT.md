@@ -30,10 +30,10 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 
 - Static site: Vite + React + TypeScript, react-three-fiber/drei, deployed to GitHub Pages by GitHub Actions. No backend, no database, no tracking.
 - Content is Markdown in `src/content/groups/*.md`. Placeholder issues (`placeholder: true`) appear everywhere but publish no body. A content lint test guards every file.
-- Groups now: Ifugao, Mangyan, T'boli (draft articles); Aeta, Ati, Manobo (placeholders), covering Luzon, Visayas and Mindanao.
+- Nine peoples, three per island group, visited north to south in one journey: Kalinga, Ifugao, Bugkalot (Luzon); Suludnon, Ati, Magahat (Visayas); Maranao, T'boli, Sama Dilaut (Mindanao). Ifugao and T'boli are draft articles; the other seven are placeholders.
 - **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. Every interface string is in `src/i18n/en.ts`, so a Filipino edition is one more file with the same keys; the switch itself is not built yet.
 - The terraces are the one high-quality 3D model; the other objects are simple paper stand-ins. They can be replaced by img2threejs models (`fromFactory` in `src/stage/props/`).
-- Music: in-browser synthesized gong patterns and a plucked lute, labelled *synthesized*. Real recordings only with clear permission.
+- Sound: in-browser synthesized gong patterns in the Music demos, labelled *synthesized*, and a synthesized wind-and-water ambience. The nav's switch is the one sound control; turning it on says the sound is synthesized. Real recordings only with clear permission.
 - **Open decision: content sourcing.** The user hasn't decided between published sources only (NCIP, NCCA, academic, museums) and direct community contact and review.
 
 ## Brand Commitments
@@ -44,7 +44,7 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 
 ## Evidence on Hand
 
-- Three draft articles (`ifugao.md`, `mangyan.md`, `tboli.md`), marked `draft: true` and still needing fact-checking against community, NCIP and academic sources.
+- Two draft articles (`ifugao.md`, `tboli.md`), marked `draft: true` and still needing fact-checking against community, NCIP and academic sources. A Mangyan draft, out of the current scope, is kept in `docs/research/mangyan.md`.
 - No photographs, licensed recordings, community quotes or reviewer endorsements exist yet. `public/audio/` is empty. Future work must not fabricate any of these, and must not write facts, myths or taglines for placeholder groups.
 
 ## Product Principles
@@ -58,6 +58,6 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 ## Accessibility & Inclusion
 
 - `prefers-reduced-motion` is respected: the reader gets the static paper journey (the same sections drawn as flat SVG, simple fades, no camera drift, no fly-in). Browsers without WebGL, and devices too slow even for the lighter 3D tier, get the same.
-- Every 3D marker has a keyboard and screen-reader route (the cover list).
+- Every 3D marker has a keyboard and screen-reader route: the journey rail, on screen from the first view and next in Tab order after the opening card.
 - New UI keeps text at WCAG AA contrast. This is enforced for placeholder styles by a test.
 - Bilingual EN/Filipino is a stated inclusion goal.
