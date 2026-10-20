@@ -10,7 +10,8 @@ export const en = {
   },
   nav: { label: 'Main', cover: 'Cover', issues: 'Issues', about: 'About' },
   cover: {
-    lede: 'An e-magazine about the Indigenous Peoples of the Philippines: their stories, music, beliefs and crafts, one world at a time.',
+    over: 'Issue 01 · An e-magazine',
+    lede: 'The stories, music, beliefs and crafts of the Indigenous Peoples of the Philippines, one world at a time.',
     cue: 'Scroll to begin',
     peoplesTitle: '{total} peoples, north to south',
     peoplesLede: 'Choose a people to fly to their land. {ready} issues are ready; {soon} are still being prepared.',

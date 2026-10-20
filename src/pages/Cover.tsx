@@ -34,6 +34,7 @@ export default function Cover() {
     <section ref={root} className="cover">
       <div id="hero" data-world="hero" className="sec sec--hero">
         <header className="card card--masthead">
+          <p className="card__over">{s.over}</p>
           <h1>{strings.site.name}</h1>
           <p className="masthead">{strings.site.masthead}</p>
           <p className="lede">{s.lede}</p>
