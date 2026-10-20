@@ -9,12 +9,12 @@ import Spirits from './Spirits'
  * Object keys used by the `objects:` line in each article's frontmatter.
  *
  * To add an img2threejs model: save its factory (returns THREE.Group) here, e.g. `bulul.ts`,
- * then wrap it:
+ * then register it below with one line:
  *
  *   import { createBulul } from './bulul'
- *   const Bulul = () => { const g = useMemo(createBulul, []); return <primitive object={g} /> }
+ *   bulul: fromFactory(createBulul),
  *
- * and register it below as `bulul: Bulul`. Any article can then use `objects: bulul, ...`.
+ * (fromFactory lives in ./fromFactory). Any article can then use `objects: bulul, ...`.
  */
 export const OBJECTS: Record<string, ComponentType<{ color: string }>> = {
   gong: GongSet,
