@@ -5,7 +5,8 @@
 // open sources), https://registry.opendata.aws/terrain-tiles/. Contours: d3-contour.
 // Output, in public/worlds/<area>.json:
 //   { name, west, east, south, north, levels, sheets: [{ level, polys: [[outer, hole, ...], ...] }], lake? }
-// Rings are flat [lon, lat, lon, lat, ...] arrays, simplified and rounded.
+// Rings are flat integer arrays [x, y, x, y, ...]: degrees east of `west` and north of `south`, in
+// steps of `q` degrees (the loader turns them back into lon/lat).
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,22 +23,22 @@ const AREAS = [
     // the whole archipelago, about 1.2 km per sample; Sabah (Malaysian Borneo) is masked to sea
     name: 'archipelago', zoom: 7, w: 1024, h: 1580, west: 116.5, east: 127.0, south: 4.6, north: 20.8,
     mask: (lon, lat) => lon < 119.6 && lat < 7.45,
-    levels: [-200, 1, 300, 700, 1200, 1800], tolerance: 1.1, minArea: 5, digits: 3,
+    levels: [-200, 1, 300, 700, 1200, 1800], tolerance: 1.1, minArea: 5, digits: 3, smooth: 1,
   },
   {
     // Ifugao: the Cordillera around Banaue, Kiangan and Mt Pulag
     name: 'cordillera', zoom: 11, w: 768, h: 768, west: 120.75, east: 121.45, south: 16.55, north: 17.25,
-    step: 200, tolerance: 0.9, minArea: 6, digits: 4,
+    step: 250, tolerance: 1.4, minArea: 30, digits: 4, smooth: 1,
   },
   {
     // Mangyan: the interior uplands of Mindoro, coast to coast
     name: 'mindoro', zoom: 11, w: 768, h: 768, west: 120.75, east: 121.45, south: 12.6, north: 13.3,
-    levels: [-100, 1, 200, 450, 700, 1000, 1300, 1650, 2000, 2400], tolerance: 0.9, minArea: 6, digits: 4,
+    levels: [-100, 1, 250, 550, 900, 1300, 1750, 2200], tolerance: 1.4, minArea: 30, digits: 4, smooth: 1,
   },
   {
     // T'boli: the highlands around Lake Sebu
     name: 'lakesebu', zoom: 12, w: 640, h: 640, west: 124.55, east: 124.85, south: 6.06, north: 6.36,
-    step: 120, tolerance: 0.8, minArea: 6, digits: 4, lakeSeed: [124.7, 6.21],
+    step: 150, tolerance: 1.3, minArea: 30, digits: 4, smooth: 1, lakeSeed: [124.7, 6.21],
   },
 ]
 
@@ -119,18 +120,33 @@ const ringArea = (r) => {
   return s / 2
 }
 
-/** d3-contour MultiPolygons (grid space) → simplified, rounded lon/lat polygons. */
-function toPolys(multi, a, tol, minArea, digits) {
+/** Chaikin corner cutting on a closed ring: each pass rounds every corner, like a curve cut by hand. */
+function chaikin(ring, passes) {
+  let r = ring.slice(0, -1)
+  for (let p = 0; p < passes; p++) {
+    const out = []
+    for (let i = 0; i < r.length; i++) {
+      const [ax, ay] = r[i], [bx, by] = r[(i + 1) % r.length]
+      out.push([ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25], [ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75])
+    }
+    r = out
+  }
+  return [...r, r[0]]
+}
+
+/** d3-contour MultiPolygons (grid space) → simplified, smoothed, rounded lon/lat polygons. */
+function toPolys(multi, a, tol, minArea, digits, smooth = 0) {
   const f = 10 ** digits
-  const lon = (x) => Math.round((a.west + (x / a.w) * (a.east - a.west)) * f) / f
-  const lat = (y) => Math.round((a.north - (y / a.h) * (a.north - a.south)) * f) / f
+  const lon = (x) => Math.round((x / a.w) * (a.east - a.west) * f)
+  const lat = (y) => Math.round((1 - y / a.h) * (a.north - a.south) * f)
   const polys = []
   for (const poly of multi.coordinates) {
     const rings = []
     for (const [k, ring] of poly.entries()) {
       if (Math.abs(ringArea(ring)) < (k === 0 ? minArea : minArea * 2)) { if (k === 0) break; continue }
-      const s = simplify(ring, tol)
+      let s = simplify(ring, tol)
       if (s.length < 4) { if (k === 0) break; continue }
+      if (smooth) s = chaikin(s, smooth)
       rings.push(s.slice(0, -1).flatMap(([x, y]) => [lon(x), lat(y)]))
     }
     if (rings.length) polys.push(rings)
@@ -169,13 +185,13 @@ async function bakeArea(a) {
     for (let l = Math.ceil(Math.max(min, 1) / a.step) * a.step; l < max; l += a.step) levels.push(l)
   }
   const c = contours().size([a.w, a.h]).thresholds(levels)(Array.from(m))
-  const sheets = c.map((multi) => ({ level: multi.value, polys: toPolys(multi, a, a.tolerance, a.minArea, a.digits) }))
+  const sheets = c.map((multi) => ({ level: multi.value, polys: toPolys(multi, a, a.tolerance, a.minArea, a.digits, a.smooth) }))
     .filter((s) => s.polys.length)
-  const out = { name: a.name, west: a.west, east: a.east, south: a.south, north: a.north, min: Math.round(min), max: Math.round(max), levels: sheets.map((s) => s.level), sheets }
+  const out = { name: a.name, west: a.west, east: a.east, south: a.south, north: a.north, q: 10 ** -a.digits, min: Math.round(min), max: Math.round(max), levels: sheets.map((s) => s.level), sheets }
   if (a.lakeSeed) {
     const { mask, h0 } = lakeMask(m, a)
     const [lake] = contours().size([a.w, a.h]).thresholds([0.5])(Array.from(mask))
-    out.lake = { level: Math.round(h0), polys: toPolys(lake, a, a.tolerance, a.minArea, a.digits) }
+    out.lake = { level: Math.round(h0), polys: toPolys(lake, a, a.tolerance, a.minArea, a.digits, a.smooth) }
   }
   writeFileSync(join(OUT, `${a.name}.json`), JSON.stringify(out))
   const points = sheets.reduce((n, s) => n + s.polys.reduce((k, p) => k + p.reduce((q, r) => q + r.length / 2, 0), 0), 0)
@@ -212,7 +228,7 @@ function heroTerraces() {
   const levels = Array.from({ length: 30 }, (_, k) => 0.04 + k * 0.03)
   const box = { west: 0, east: 1, south: 0, north: 1, w: N, h: N }
   const sheets = contours().size([N, N]).thresholds(levels)(Array.from(field))
-    .map((multi) => ({ level: Math.round(multi.value * 1000) / 1000, polys: toPolys(multi, box, 0.5, 3, 4) }))
+    .map((multi) => ({ level: Math.round(multi.value * 1000) / 1000, polys: toPolys(multi, box, 0.6, 3, 4, 2) }))
     .filter((s) => s.polys.length)
   // forest crown: trees stand where the land is above the last terraces
   const trees = []
@@ -220,7 +236,7 @@ function heroTerraces() {
     const x = rnd(), y = rnd(), v = field[Math.floor((1 - y) * (N - 1)) * N + Math.floor(x * (N - 1))]
     if (v > 0.8) trees.push(Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4, Math.round(v * 1e3) / 1e3)
   }
-  const out = { name: 'terraces', levels: sheets.map((s) => s.level), sheets, trees }
+  const out = { name: 'terraces', west: 0, south: 0, q: 1e-4, levels: sheets.map((s) => s.level), sheets, trees }
   writeFileSync(join(OUT, 'terraces.json'), JSON.stringify(out))
   return { name: 'terraces', sheets: sheets.length, trees: trees.length / 3 }
 }
