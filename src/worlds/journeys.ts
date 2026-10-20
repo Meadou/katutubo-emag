@@ -1,6 +1,6 @@
-import type { Group } from '../content'
+import { groups as allGroups, type Group, type IslandGroup } from '../content'
 import { TIMES, isStillChapter, timeForChapter, type TimeName } from './palettes'
-import type { IssueDesign, Shot } from './issues'
+import { DESIGNS, type Shot } from './issues'
 import type { Camera, WorldState } from './types'
 
 const FOV = 35
@@ -15,7 +15,7 @@ export function fitDist(spanW: number, spanH: number, aspect: number) {
 /** The whole archipelago, looking almost straight down. */
 export const archipelagoCamera = (aspect: number, lean?: { lon: number; lat: number }, k = 0): Camera => {
   const dist = fitDist(11, 16.6, aspect)
-  // on wide screens the text card takes the left, so the islands sit right of centre
+  // on wide screens the opening card takes the left, so the islands sit right of centre
   const shift = aspect > 1.15 ? 2 * HALF * dist * aspect * 0.17 : 0
   return {
     lon: PH.lon + ((lean?.lon ?? PH.lon) - PH.lon) * k - shift,
@@ -32,56 +32,102 @@ const at = (focus: { lon: number; lat: number }, s: Shot): Camera => ({
   lon: focus.lon + (s.dlon ?? 0), lat: focus.lat + (s.dlat ?? 0), dist: s.dist, tilt: s.tilt, yaw: s.yaw,
 })
 
-/** The cover: the archipelago at midday, then leaning toward the first people, north to south. */
-export function coverWorlds(aspect: number, first?: Group): Record<string, WorldState> {
-  const map = { area: 'archipelago', clouds: 0, still: false, props: [] } as const
-  return {
-    hero: world('midday', { ...map, props: [], camera: archipelagoCamera(aspect) }),
-    peoples: world('midday', { ...map, props: [], camera: { ...archipelagoCamera(aspect), tilt: 0.32 } }),
-    begin: world('sunrise', {
-      ...map, props: [], pin: first,
-      camera: first ? { lon: first.lon, lat: first.lat - 0.6, dist: fitDist(11, 16.6, aspect) * 0.42, tilt: 0.5, yaw: 0 } : archipelagoCamera(aspect),
-    }),
-  }
-}
-
 /** Quiet map worlds for the index and about pages. */
 export const plainWorlds = (aspect: number, time: TimeName = 'midday'): Record<string, WorldState> => ({
-  page: world(time, { area: 'archipelago', clouds: 0, still: true, props: [], camera: { ...archipelagoCamera(aspect), dist: fitDist(11, 16.6, aspect) * 1.12, tilt: 0.42 } }),
+  page: world(time, { area: 'archipelago', still: true, props: [], camera: { ...archipelagoCamera(aspect), dist: fitDist(11, 16.6, aspect) * 1.12, tilt: 0.42 } }),
 })
 
-/**
- * An issue's journey: the map with the place marked, the dive through the clouds into the region,
- * one world per chapter (each its own time of day, beliefs held still), the sources in full day,
- * and the fly back out toward the next people.
- */
-export function issueWorlds(group: Group, design: IssueDesign, next: Group | null, aspect: number): Record<string, WorldState> {
-  const region = { area: design.area, clouds: 0 } as const
-  const worlds: Record<string, WorldState> = {
-    map: world('midday', { area: 'archipelago', clouds: 0, still: false, props: [], pin: group, camera: archipelagoCamera(aspect, group, 0.12) }),
-  }
-  const ids = group.chapters.map((c) => c.id)
-  ids.forEach((id, i) => {
-    const shot = design.shots[id] ?? design.shots.overview
-    worlds[id] = world(timeForChapter(id), {
-      ...region, still: isStillChapter(id), props: [group.chapters[i].object], camera: at(design.focus, shot),
-    })
-  })
-  // the dive: from the map straight into the first chapter's world
-  worlds.fly = { ...worlds[ids[0]], travel: { from: 'map', to: ids[0] } }
-  worlds.sources = world('day', { ...region, still: false, props: [], camera: at(design.focus, design.shots.sources) })
-  if (next) {
-    worlds.nextmap = world('midday', { area: 'archipelago', clouds: 0, still: false, props: [], pin: next, camera: archipelagoCamera(aspect, next, 0.12) })
-    worlds.onward = { ...worlds.sources, travel: { from: 'sources', to: 'nextmap' } }
-  }
-  return worlds
+export const REGIONS: IslandGroup[] = ['Luzon', 'Visayas', 'Mindanao']
+
+/** Each island group seen whole at "mid zoom": the view the journey returns to between its peoples. */
+const REGION_VIEW: Record<IslandGroup, { lon: number; lat: number; w: number; h: number }> = {
+  Luzon: { lon: 121.25, lat: 16.8, w: 2.7, h: 3.8 },
+  Visayas: { lon: 122.7, lat: 10.45, w: 1.9, h: 2.9 },
+  Mindanao: { lon: 122.5, lat: 6.75, w: 5.4, h: 3.7 },
 }
 
-/** A people whose issue is still being prepared: the map, then their place, seen from above. */
-export function placeholderWorlds(group: Group, aspect: number): Record<string, WorldState> {
-  const close = { lon: group.lon, lat: group.lat - 0.25, dist: 2.4, tilt: 0.6, yaw: 0 }
-  return {
-    map: world('midday', { area: 'archipelago', clouds: 0, still: false, props: [], pin: group, camera: archipelagoCamera(aspect, group, 0.12) }),
-    place: world('morning', { area: 'archipelago', clouds: 0, still: false, props: [], pin: group, camera: close }),
+/** One section of the journey, in reading order. Zoom sections carry no text: the camera moves. */
+export type Section =
+  | { kind: 'intro'; id: string }
+  | { kind: 'region'; id: string; region: IslandGroup; peoples: Group[] }
+  | { kind: 'zoom'; id: string }
+  | { kind: 'people'; id: string; group: Group }
+  | { kind: 'chapter'; id: string; group: Group; index: number }
+  | { kind: 'sources'; id: string; group: Group }
+  | { kind: 'end'; id: string }
+
+export const stopId = (slug: string) => `stop-${slug}`
+export const chapterId = (slug: string, chapter: string) => `ch-${slug}-${chapter}`
+
+/**
+ * The whole magazine as one journey, north to south: the archipelago, then each island group at mid
+ * zoom, down to each people's land and back up again, on to the next group, and out to the whole
+ * map at the end. A finished issue's chapters play where its people are; the others say "Coming soon".
+ */
+export function buildJourney(aspect: number, groups: Group[] = allGroups): { sections: Section[]; worlds: Record<string, WorldState> } {
+  const sections: Section[] = []
+  const worlds: Record<string, WorldState> = {}
+  const map = { area: 'archipelago' as const, still: false, props: [] as string[] }
+  const zoom = (id: string, from: string, to: string) => {
+    sections.push({ kind: 'zoom', id })
+    worlds[id] = { ...worlds[from], travel: { from, to } }
   }
+
+  sections.push({ kind: 'intro', id: 'intro' })
+  worlds.intro = world('midday', { ...map, camera: archipelagoCamera(aspect) })
+  let last = 'intro'
+
+  for (const region of REGIONS) {
+    const peoples = groups.filter((g) => g.islandGroup === region)
+    if (!peoples.length) continue
+    const v = REGION_VIEW[region]
+    const mid = `region-${region.toLowerCase()}`
+    worlds[mid] = world('midday', { ...map, camera: { lon: v.lon, lat: v.lat, dist: fitDist(v.w, v.h, aspect), tilt: 0.5, yaw: 0 } })
+    zoom(`to-${region.toLowerCase()}`, last, mid)
+    sections.push({ kind: 'region', id: mid, region, peoples })
+
+    peoples.forEach((g, i) => {
+      const d = DESIGNS[g.slug]
+      const site = d?.focus ?? { lon: g.lon, lat: g.lat }
+      const area = d?.area ?? 'archipelago'
+      const stop = stopId(g.slug)
+      const own = { area, site, people: g.slug, pin: g } as const
+      const stopShot = d?.shots.stop ?? { dist: 0.8, tilt: 0.8, yaw: 0 }
+      worlds[stop] = world(g.placeholder ? 'day' : 'morning', {
+        ...own, still: false, props: g.placeholder ? [] : [g.chapters[0]?.object].filter(Boolean) as string[], camera: at(site, stopShot),
+      })
+      // between two peoples of one group the camera rises back to the group's mid zoom
+      if (i > 0) zoom(`up-${g.slug}`, last, mid)
+      zoom(`down-${g.slug}`, mid, stop)
+      sections.push({ kind: 'people', id: stop, group: g })
+      last = stop
+
+      if (!g.placeholder && d) {
+        g.chapters.forEach((c, k) => {
+          const id = chapterId(g.slug, c.id)
+          worlds[id] = world(timeForChapter(c.id), {
+            ...own, still: isStillChapter(c.id), props: [c.object], camera: at(site, d.shots[c.id] ?? stopShot),
+          })
+          sections.push({ kind: 'chapter', id, group: g, index: k })
+          last = id
+        })
+        if (g.sources) {
+          const id = `sources-${g.slug}`
+          worlds[id] = world('day', { ...own, still: false, props: [], camera: at(site, d.shots.sources ?? stopShot) })
+          sections.push({ kind: 'sources', id, group: g })
+          last = id
+        }
+      }
+    })
+  }
+
+  worlds.end = world('dusk', { ...map, camera: { ...archipelagoCamera(aspect), tilt: 0.3 } })
+  zoom('to-end', last, 'end')
+  sections.push({ kind: 'end', id: 'end' })
+  return { sections, worlds }
+}
+
+/** The section a deep link names: a people's stop, or one of its chapters. */
+export function sectionFor(slug: string, chapter?: string): string {
+  return chapter ? chapterId(slug, chapter) : stopId(slug)
 }

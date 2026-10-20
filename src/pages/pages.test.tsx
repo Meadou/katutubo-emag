@@ -4,55 +4,67 @@ import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { groups } from '../content'
 
-// jsdom has no WebGL, so these render the static journey: the same pages a reader without 3D gets.
+// jsdom has no WebGL, so these render the static journey: the same page a reader without 3D gets.
 const at = (path: string) => render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
+const stop = (slug: string) => document.getElementById(`stop-${slug}`)!
 
-describe('placeholder issues', () => {
-  it('say "Coming soon", have no chapters, and point to a finished issue', () => {
-    at('/group/ati')
-    expect(screen.getByRole('heading', { level: 1, name: 'Ati' })).toBeInTheDocument()
-    expect(screen.getAllByText('Coming soon').length).toBeGreaterThan(0)
-    expect(screen.queryByRole('navigation', { name: 'Chapters' })).toBeNull()
-    expect(screen.getByRole('link', { name: /Read a finished issue/ })).toHaveAttribute('href', '/group/tboli')
-  })
-})
-
-describe('finished issues', () => {
-  it('have the chapter rail and fly on to the next finished issue', () => {
-    at('/group/tboli')
-    const rail = screen.getByRole('navigation', { name: 'Chapters' })
-    expect(within(rail).getAllByRole('link').length).toBe(5)
-    expect(screen.getByRole('link', { name: "Fly on to the Ifugao" })).toHaveAttribute('href', '/group/ifugao')
+describe('the journey', () => {
+  it('opens with what Katutubo is, the sound prompt and the way in', () => {
+    at('/')
+    expect(screen.getByRole('heading', { level: 1, name: 'Katutubo' })).toBeInTheDocument()
+    expect(screen.getByText(/turn on sound/)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Sound off/ }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Begin the journey' })).toBeInTheDocument()
   })
 
-  it('skip placeholders on the way to the next issue', () => {
-    at('/group/mangyan')
-    expect(screen.getByRole('link', { name: "Fly on to the T'boli" })).toHaveAttribute('href', '/group/tboli')
+  it('lists every people as a link: the keyboard and screen-reader route', () => {
+    at('/')
+    const list = screen.getByRole('navigation', { name: 'Peoples in Katutubo' })
+    const links = within(list).getAllByRole('link')
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `/group/${g.slug}`))
   })
 
-  it('keep the draft note and the sources', () => {
+  it('visits nine peoples, three in each island group, north to south', () => {
+    at('/')
+    expect(groups.map((g) => g.slug)).toEqual(['kalinga', 'ifugao', 'bugkalot', 'suludnon', 'ati', 'magahat', 'maranao', 'tboli', 'samadilaut'])
+    for (const r of ['Luzon', 'Visayas', 'Mindanao']) expect(groups.filter((g) => g.islandGroup === r)).toHaveLength(3)
+    const rail = screen.getByRole('navigation', { name: 'Journey' })
+    expect(within(rail).getAllByRole('link').map((a) => a.textContent)).toEqual(groups.map((g) => g.name))
+  })
+
+  it('says "Coming soon" at a people whose issue is being prepared, and invents nothing there', () => {
+    at('/group/kalinga')
+    const s = within(stop('kalinga'))
+    expect(s.getByRole('heading', { name: 'Kalinga' })).toBeInTheDocument()
+    expect(s.getByText('Coming soon')).toBeInTheDocument()
+    expect(s.getByText('Skin, Sound & Peace')).toBeInTheDocument()
+    expect(s.queryByRole('note')).toBeNull()
+  })
+
+  it('names a people by their own name first', () => {
+    at('/group/bugkalot')
+    const s = within(stop('bugkalot'))
+    expect(s.getByRole('heading', { name: 'Bugkalot' })).toBeInTheDocument()
+    expect(s.getByText('also known as Ilongot')).toBeInTheDocument()
+  })
+
+  it('plays a finished issue where its people are, with the draft note and the sources', () => {
     at('/group/ifugao')
-    expect(screen.getByRole('note')).toHaveTextContent(/Draft/)
-    expect(screen.getByRole('heading', { name: 'Sources and further reading' })).toBeInTheDocument()
+    const s = within(stop('ifugao'))
+    expect(s.getByRole('note')).toHaveTextContent(/Draft/)
+    const music = document.getElementById('ch-ifugao-music')!
+    expect(within(music).getByRole('heading', { name: 'Music' })).toBeInTheDocument()
+    expect(within(music).getByText(/Not a recording/)).toBeInTheDocument()
+    expect(within(document.getElementById('sources-ifugao')!).getByRole('heading', { name: 'Sources and further reading' })).toBeInTheDocument()
   })
 })
 
 describe('the issue index', () => {
-  it('filters to the Visayas and shows Ati as coming soon', () => {
+  it('filters to the Visayas and shows its three peoples as coming soon', () => {
     at('/issues')
     fireEvent.click(screen.getByRole('button', { name: 'Visayas' }))
     const rows = screen.getAllByRole('listitem')
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toHaveTextContent('Ati')
-    expect(rows[0]).toHaveTextContent('Coming soon')
-  })
-})
-
-describe('the cover', () => {
-  it('lists every people as a link: the keyboard and screen-reader route into the issues', () => {
-    at('/')
-    const list = screen.getByRole('list', { name: 'Peoples in Katutubo' })
-    const links = within(list).getAllByRole('link')
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `/group/${g.slug}`))
+    expect(rows.map((r) => r.querySelector('.row__name')?.textContent)).toEqual(['Suludnon', 'Ati', 'Magahat'])
+    for (const r of rows) expect(r).toHaveTextContent('Coming soon')
   })
 })

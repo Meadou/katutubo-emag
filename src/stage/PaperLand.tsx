@@ -5,21 +5,32 @@ import { loadLand, type Land } from '../worlds/land'
 import { journey } from '../worlds/engine'
 import { mixColor, sampleRamp } from '../worlds/blend'
 import { AREAS, type AreaName } from '../worlds/types'
-import { GAP, extrudeSheet, paperMaterial, sheetShapes, stackHeightAt } from './paper'
-import { place } from './place'
+import { SEA_FLOOR, baseDepthMaterial, detail, extrudeSheet, heightOf, newDetail, paperMaterial, shadeOf, sheetShapes, toX, toZ } from './paper'
+import { lands } from './place'
 
-interface Built { geo: THREE.BufferGeometry; sea: boolean; k: number; n: number }
+interface Built { geo: THREE.BufferGeometry; level: number; sea: boolean; cap: THREE.MeshLambertMaterial; edge: THREE.MeshLambertMaterial }
+
+const baseDepth = baseDepthMaterial()
 
 /**
- * One area of paper: a sheet per contour, extruded, stacked at the area's gap, coloured by the world
- * the reader is in and cross-faded behind the clouds when the journey changes area. Sheets are built
- * one per frame, so laying out a region never stalls the page.
+ * One area of paper: a sheet per contour, extruded and stacked by the shared height rule, coloured
+ * by the world the reader is in. The archipelago is always laid; a place's finer paper resolves
+ * inside its own box as the camera comes close, and the archipelago gives way there pixel by pixel.
+ * Sheets are built one per frame, so laying out a place never stalls the page.
  */
 export default function PaperLand({ area, shadows, onReady }: { area: AreaName; shadows: boolean; onReady?: () => void }) {
   const [land, setLand] = useState<Land | null>(null)
   const [built, setBuilt] = useState<Built[]>([])
   const group = useRef<THREE.Group>(null!)
-  const gap = GAP[area]
+  const isBase = area === 'archipelago'
+  const role = isBase ? 'base' : 'detail'
+  // a place keeps its own box and dissolve; the archipelago reads the shared one
+  const u = useMemo(() => {
+    if (isBase) return detail
+    const a = AREAS[area], d = newDetail()
+    d.box.value.set(toX(a.west), toZ(a.north), toX(a.east), toZ(a.south))
+    return d
+  }, [area, isBase])
 
   useEffect(() => {
     let live = true
@@ -31,83 +42,67 @@ export default function PaperLand({ area, shadows, onReady }: { area: AreaName; 
   useEffect(() => {
     if (!land) return
     let k = 0, raf = 0
-    const landSheets = land.sheets.filter((s) => s.level > 0)
-    const seaCount = land.sheets.length - landSheets.length
     const out: Built[] = []
+    const add = (geo: THREE.BufferGeometry, level: number, sea: boolean) =>
+      out.push({ geo, level, sea, cap: paperMaterial('#ffffff', role, u), edge: paperMaterial('#ffffff', role, u) })
     const step = () => {
       if (k >= land.sheets.length) {
         if (land.lake) {
-          // the lake: a still sheet of water, just above the land beneath it
-          const top = stackHeightAt(land.sheets, gap, ...center(land.lake.polys[0][0]), -seaCount * gap) + gap * 0.05
-          out.push({ geo: extrudeSheet(sheetShapes(land.lake), gap * 0.4, top), sea: true, k: -1, n: 0 })
+          // the lake: a still sheet of water, just above the shore around it
+          const top = heightOf(land.lake.level) + 0.0015
+          add(extrudeSheet(sheetShapes(land.lake), 0.003, top), land.lake.level, true)
         }
         setBuilt([...out])
-        const f = place.focus
-        if (f) place.ground[area] = stackHeightAt(land.sheets, gap, f.lon, f.lat, -seaCount * gap)
-        place.rest[area] = (landSheets.length / 2) * gap
+        lands[area] = land.lake ? [...land.sheets, land.lake] : land.sheets
         onReady?.()
         return
       }
       const s = land.sheets[k]
-      const isSea = s.level <= 0
-      // sea sheets sit below the shore; land sheets stack up from it
-      const top = (k + 1 - seaCount) * gap
-      out.push({ geo: extrudeSheet(sheetShapes(s), gap * 0.55, top), sea: isSea, k: Math.max(0, landSheets.indexOf(s)), n: landSheets.length })
+      const top = heightOf(s.level)
+      const below = k > 0 ? heightOf(land.sheets[k - 1].level) : SEA_FLOOR
+      add(extrudeSheet(sheetShapes(s), Math.max(0.003, (top - below) * 0.6), top), s.level, s.level <= 0)
       k++
       if (k % 3 === 0) setBuilt([...out])
       raf = requestAnimationFrame(step)
     }
     raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [land, gap, area, onReady])
+    // everything this build made goes back to the GPU when the area is taken down
+    return () => { cancelAnimationFrame(raf); out.forEach((b) => { b.geo.dispose(); b.cap.dispose(); b.edge.dispose() }) }
+  }, [land, area, role, u, onReady])
 
-  useEffect(() => () => built.forEach((b) => b.geo.dispose()), [built])
-
-  const caps = useMemo(() => built.map(() => paperMaterial()), [built.length])
-  const edges = useMemo(() => built.map(() => paperMaterial()), [built.length])
-  const base = useMemo(() => paperMaterial(), [])
-  // the sheet materials are remade as sheets are added; the old ones go back to the GPU
-  useEffect(() => () => { caps.forEach((m) => m.dispose()); edges.forEach((m) => m.dispose()) }, [caps, edges])
-  // the ground under the sheets runs far past the area's edge and dissolves into the fog: open sea
-  // around the archipelago, the valley floor around a region
-  const board = useMemo(() => {
+  const board = useMemo(() => paperMaterial('#ffffff', role, u), [role, u])
+  // the open sea under everything: far past the archipelago's edge into the fog, or exactly a place's box
+  const boardGeo = useMemo(() => {
     const a = AREAS[area]
-    const span = area === 'archipelago' ? 80 : Math.max(a.east - a.west, a.north - a.south) * 14
-    const g = new THREE.PlaneGeometry(span, span).rotateX(-Math.PI / 2)
-    g.translate((a.west + a.east) / 2 - 122, -gap * (area === 'archipelago' ? 1 : 0.02), -((a.south + a.north) / 2 - 12))
+    const w = isBase ? 80 : a.east - a.west, h = isBase ? 80 : a.north - a.south
+    const g = new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2)
+    g.translate((a.west + a.east) / 2 - 122, SEA_FLOOR, -((a.south + a.north) / 2 - 12))
     return g
-  }, [area, gap])
+  }, [area, isBase])
 
   useFrame(() => {
     const w = journey.current
     if (!w || !group.current) return
-    const weight = w.areaWeights[area] ?? 0
-    group.current.visible = weight > 0.004
+    const weight = isBase ? 1 : w.areaWeights[area] ?? 0
+    group.current.visible = weight > 0.002
     if (!group.current.visible) return
-    const fade = weight < 0.999
-    const all = [...caps, ...edges, base]
-    for (const m of all) { m.transparent = fade; m.opacity = weight; m.depthWrite = !fade || weight > 0.5 }
-    built.forEach((b, i) => {
-      const c = b.sea ? w.sea[1] : sampleRamp(w.land, b.n > 1 ? b.k / (b.n - 1) : 0)
-      caps[i].color.set(c)
+    if (!isBase) u.mix.value = weight
+    for (const b of built) {
+      const c = b.sea ? w.sea[1] : sampleRamp(w.land, shadeOf(b.level))
+      b.cap.color.set(c)
       // the cut edge is the same paper turned away from the light: always a little darker than the top
-      edges[i].color.set(mixColor(c, '#000000', 0.22))
-    })
-    base.color.set(area === 'archipelago' ? w.sea[0] : mixColor(w.land[0], '#000000', 0.2))
+      b.edge.color.set(mixColor(c, '#000000', 0.22))
+    }
+    board.color.set(w.sea[0])
   })
 
   return (
     <group ref={group}>
-      <mesh geometry={board} material={base} receiveShadow={shadows} />
+      <mesh geometry={boardGeo} material={board} receiveShadow={shadows} />
       {built.map((b, i) => (
-        <mesh key={i} geometry={b.geo} material={[caps[i], edges[i]]} castShadow={shadows} receiveShadow={shadows} />
+        <mesh key={i} geometry={b.geo} material={[b.cap, b.edge]} castShadow={shadows} receiveShadow={shadows}
+          customDepthMaterial={isBase ? baseDepth : undefined} />
       ))}
     </group>
   )
-}
-
-const center = (r: number[]): [number, number] => {
-  let x = 0, y = 0
-  for (let i = 0; i < r.length; i += 2) { x += r[i]; y += r[i + 1] }
-  return [x / (r.length / 2), y / (r.length / 2)]
 }

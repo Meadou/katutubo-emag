@@ -1,16 +1,17 @@
 import type { IssueDesign } from '.'
 
-/** T'boli: the dive lands on the highlands around Lake Sebu. */
+/** T'boli: the zoom lands on the highlands around Lake Sebu. */
 export const tboli: IssueDesign = {
   area: 'lakesebu',
   focus: { lon: 124.7, lat: 6.215 },
   shots: {
+    stop: { dist: 0.3, tilt: 0.86, yaw: 0.3 },
     overview: { dist: 0.16, tilt: 0.95, yaw: 0.6 },
-    'myths-stories': { dist: 0.36, tilt: 0.66, yaw: -0.5, dlat: 0.02 },
-    music: { dist: 0.22, tilt: 0.86, yaw: -1.0 },
+    'myths-stories': { dist: 0.32, tilt: 0.7, yaw: -0.5, dlat: 0.015 },
+    music: { dist: 0.12, tilt: 0.9, yaw: -1.0 },
     'beliefs-rituals': { dist: 0.26, tilt: 0.8, yaw: 0.2 },
-    crafts: { dist: 0.14, tilt: 0.98, yaw: 1.4 },
-    sources: { dist: 0.5, tilt: 0.46, yaw: 0.1 },
+    crafts: { dist: 0.12, tilt: 0.98, yaw: 1.4 },
+    sources: { dist: 0.36, tilt: 0.5, yaw: 0.1 },
   },
   demos: {
     overview: { kind: 'region' },

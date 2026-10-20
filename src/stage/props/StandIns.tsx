@@ -1,55 +1,50 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { paperMaterial } from '../paper'
-import { place } from '../place'
+import { journey } from '../../worlds/engine'
+import { DESIGNS } from '../../worlds/issues'
 import type { PropProps } from './registry'
 
 /** Procedural stand-ins, cut from paper and standing still. A real model can replace any of them via fromFactory. */
 const S = 0.02
 
+/** Which gongs the people being read play, by their Music demo: flat (Ifugao gangsa) or bossed (T'boli klintang). */
+const bossedHere = () => {
+  const music = DESIGNS[journey.current?.people ?? '']?.demos.music
+  return music?.kind === 'gongs' && music.gong === 'bossed'
+}
+
 /** A row of gongs hanging from a beam: flat discs for flat gongs, a raised knob for bossed gongs. */
 export function GongStand(_: PropProps) {
-  const g = useMemo(() => {
-    const bossed = place.gong === 'bossed'
-    const disc = new THREE.CylinderGeometry(S * 0.5, S * 0.5, S * 0.06, 24).rotateX(Math.PI / 2)
-    const boss = new THREE.SphereGeometry(S * 0.14, 12, 8).scale(1, 1, 0.6)
-    return { disc, boss, bossed, post: new THREE.BoxGeometry(S * 0.08, S * 1.6, S * 0.08), beam: new THREE.BoxGeometry(S * 3.4, S * 0.08, S * 0.08) }
-  }, [])
+  const flat = useRef<THREE.Group>(null!)
+  const bossed = useRef<THREE.Group>(null!)
+  const g = useMemo(() => ({
+    disc: new THREE.CylinderGeometry(S * 0.5, S * 0.5, S * 0.06, 24).rotateX(Math.PI / 2),
+    boss: new THREE.SphereGeometry(S * 0.14, 12, 8).scale(1, 1, 0.6),
+    post: new THREE.BoxGeometry(S * 0.08, S * 1.6, S * 0.08),
+    beam: new THREE.BoxGeometry(S * 3.4, S * 0.08, S * 0.08),
+  }), [])
   const wood = useMemo(() => paperMaterial('#6b4a2b'), [])
   const metal = useMemo(() => paperMaterial('#b5874a'), [])
-  const n = g.bossed ? 5 : 4
+  // the stand never moves; only which set of gongs hangs from it follows the people
+  useFrame(() => {
+    const b = bossedHere()
+    flat.current.visible = !b
+    bossed.current.visible = b
+  })
+  const row = (n: number, gap: number, knob: boolean) => Array.from({ length: n }, (_, i) => (
+    <group key={i} position={[(i - (n - 1) / 2) * S * gap, S * 1.0, 0]}>
+      <mesh geometry={g.disc} material={metal} castShadow />
+      {knob && <mesh geometry={g.boss} material={metal} position-z={S * 0.04} />}
+    </group>
+  ))
   return (
     <group>
       {[-1.6, 1.6].map((x) => <mesh key={x} geometry={g.post} material={wood} position={[x * S, S * 0.8, 0]} castShadow />)}
       <mesh geometry={g.beam} material={wood} position={[0, S * 1.6, 0]} castShadow />
-      {Array.from({ length: n }, (_, i) => {
-        const x = (i - (n - 1) / 2) * S * (g.bossed ? 0.62 : 0.78)
-        return (
-          <group key={i} position={[x, S * 1.0, 0]}>
-            <mesh geometry={g.disc} material={metal} castShadow />
-            {g.bossed && <mesh geometry={g.boss} material={metal} position-z={S * 0.04} />}
-          </group>
-        )
-      })}
-    </group>
-  )
-}
-
-/** A stand of bamboo: a few tall paper tubes with nodes. */
-export function BambooGrove(_: PropProps) {
-  const tube = useMemo(() => new THREE.CylinderGeometry(S * 0.09, S * 0.1, S * 3, 8).translate(0, S * 1.5, 0), [])
-  const node = useMemo(() => new THREE.TorusGeometry(S * 0.1, S * 0.02, 4, 10).rotateX(Math.PI / 2), [])
-  const green = useMemo(() => paperMaterial('#8a9a4a'), [])
-  const dark = useMemo(() => paperMaterial('#5d6b31'), [])
-  const stalks = [[0, 0], [0.5, 0.3], [-0.45, 0.2], [0.2, -0.45], [-0.25, -0.35], [0.7, -0.15]]
-  return (
-    <group>
-      {stalks.map(([x, z], i) => (
-        <group key={i} position={[x * S, 0, z * S]} rotation={[0.04 * (i % 3 - 1), 0, 0.05 * ((i % 2) * 2 - 1)]} scale={[1, 0.8 + (i % 3) * 0.15, 1]}>
-          <mesh geometry={tube} material={green} castShadow />
-          {[0.8, 1.6, 2.4].map((h) => <mesh key={h} geometry={node} material={dark} position-y={h * S} />)}
-        </group>
-      ))}
+      <group ref={flat}>{row(4, 0.78, false)}</group>
+      <group ref={bossed} visible={false}>{row(5, 0.62, true)}</group>
     </group>
   )
 }

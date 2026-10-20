@@ -7,6 +7,8 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       setupFiles: ['src/test/setup.ts'],
+      // the page tests render the whole journey (nine peoples, every chapter); give a slow machine time
+      testTimeout: 20000,
     },
   }),
 )

@@ -28,6 +28,10 @@ export interface Group {
   lat: number
   color: string
   tagline: string
+  /** the issue's angle: its title as a magazine feature (from the editors, not a fact) */
+  angle: string
+  /** another name the people are known by, shown after the endonym */
+  aka: string
   draft: boolean
   /** "Coming soon" issue: listed everywhere, but its body is not published yet */
   placeholder: boolean
@@ -42,7 +46,7 @@ const files = import.meta.glob('./groups/*.md', { query: '?raw', import: 'defaul
 const ISLAND_GROUP: Record<string, IslandGroup> = {
   Luzon: 'Luzon', Mindoro: 'Luzon', Palawan: 'Luzon',
   Panay: 'Visayas', Negros: 'Visayas', Cebu: 'Visayas', Bohol: 'Visayas', Samar: 'Visayas', Leyte: 'Visayas',
-  Mindanao: 'Mindanao', Sulu: 'Mindanao',
+  Mindanao: 'Mindanao', Sulu: 'Mindanao', 'Tawi-Tawi': 'Mindanao',
 }
 
 function parseFrontmatter(raw: string): { meta: Record<string, string>; body: string } {
@@ -84,6 +88,8 @@ export function parseGroup(raw: string): Group {
     lat: parseFloat(meta.lat),
     color: meta.color ?? '#d9a441',
     tagline: meta.tagline ?? '',
+    angle: meta.angle ?? '',
+    aka: meta.aka ?? '',
     draft: meta.draft === 'true',
     placeholder,
     audio: meta.audio || null,

@@ -1,15 +1,38 @@
-import type { AreaName } from '../worlds/types'
+import type { Sheet } from '../worlds/land'
+import type { AreaName, Blended } from '../worlds/types'
+import { groundAt } from './paper'
 
-/**
- * Where the current issue's chapter objects stand, and the ground height under them once the region's
- * paper has been laid. Written by the issue page and by the paper land; read every frame by the stage.
- */
-export const place = {
-  focus: null as { lon: number; lat: number } | null,
-  area: null as AreaName | null,
-  gong: 'flat' as 'flat' | 'bossed',
-  /** area → ground height (world units) at the focus, filled in when that area is built */
-  ground: {} as Partial<Record<AreaName, number>>,
-  /** area → height of the middle of its stack (a resting height for the camera target) */
-  rest: {} as Partial<Record<AreaName, number>>,
+/** The paper of each area once it has been laid, so the stage can ask how high the ground is anywhere. */
+export const lands: Partial<Record<AreaName, Sheet[]>> = {}
+
+const cache = new Map<string, number>()
+
+/** Height of an area's paper under a point (about 100 m resolution), or null before that area is laid. */
+export function groundHeight(area: AreaName, lon: number, lat: number): number | null {
+  const sheets = lands[area]
+  if (!sheets) return null
+  const key = `${area}:${lon.toFixed(3)}:${lat.toFixed(3)}`
+  let h = cache.get(key)
+  if (h === undefined) {
+    h = groundAt(sheets, lon, lat)
+    if (cache.size > 4000) cache.clear()
+    cache.set(key, h)
+  }
+  return h
+}
+
+/** The place whose finer paper is showing most, and how far it has resolved. */
+export function resolving(w: Blended): [AreaName | null, number] {
+  let best: AreaName | null = null, weight = 0
+  for (const [k, v] of Object.entries(w.areaWeights) as [AreaName, number][]) if (k !== 'archipelago' && v > weight) { best = k; weight = v }
+  return [best, weight]
+}
+
+/** Ground height under a point, from whichever paper is showing there. */
+export function groundUnder(w: Blended, lon: number, lat: number) {
+  const base = groundHeight('archipelago', lon, lat) ?? 0
+  const [place, k] = resolving(w)
+  if (!place || k <= 0) return base
+  const g = groundHeight(place, lon, lat)
+  return g === null ? base : base + (g - base) * k
 }

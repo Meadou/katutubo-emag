@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import Terraces from './Terraces'
-import { BambooGrove, GongStand, LoomFrame } from './StandIns'
+import { GongStand, LoomFrame } from './StandIns'
 
 /** What every prop receives: the accent of the world it stands in. */
 export interface PropProps { accent: string }
@@ -18,7 +18,6 @@ const Stillness: ComponentType<PropProps> = () => null
 export const OBJECTS: Record<string, ComponentType<PropProps>> = {
   terraces: Terraces,
   gong: GongStand,
-  bamboo: BambooGrove,
   loom: LoomFrame,
   spirits: Stillness,
 }

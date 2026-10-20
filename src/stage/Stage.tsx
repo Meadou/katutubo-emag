@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import PaperLand from './PaperLand'
-import Clouds from './Clouds'
 import Pins from './Pins'
 import Props from './Props'
 import StaticWorld from '../static/StaticWorld'
@@ -11,31 +10,47 @@ import { journey } from '../worlds/engine'
 import { fallBackToStatic, lowPower } from '../worlds/mode'
 import { AREAS, type AreaName } from '../worlds/types'
 import { mixColor } from '../worlds/blend'
-import { place } from './place'
-import { toX, toZ } from './paper'
+import { groundUnder, resolving } from './place'
+import { detail, toX, toZ } from './paper'
 
 type Tier = 'high' | 'lite'
-const AREA_NAMES = Object.keys(AREAS) as AreaName[]
 
-/** The camera follows the blended world, with a slight drift toward the pointer (none in still worlds). */
+/**
+ * The camera follows the blended world, with a slight drift toward the pointer (none in still
+ * worlds), and keeps its target on the ground as the land rises and falls beneath it.
+ */
 function CameraRig() {
   const { camera } = useThree()
   const look = useMemo(() => new THREE.Vector3(), [])
-  useFrame(({ pointer }) => {
+  const y = useRef(0)
+  useFrame(({ pointer }, dt) => {
     const w = journey.current
     if (!w) return
     const c = w.camera
-    let ty = 0
-    for (const a of AREA_NAMES) ty += (w.areaWeights[a] ?? 0) * (place.focus && place.area === a && place.ground[a] !== undefined && c.dist < 2 ? place.ground[a]! : place.rest[a] ?? 0)
+    y.current = THREE.MathUtils.damp(y.current, groundUnder(w, c.lon, c.lat), 4, dt)
     const yaw = c.yaw + pointer.x * 0.05 * w.drift
     const tilt = Math.min(1.35, c.tilt + pointer.y * 0.025 * w.drift)
-    look.set(toX(c.lon), ty, toZ(c.lat))
+    look.set(toX(c.lon), y.current, toZ(c.lat))
     camera.position.set(look.x + c.dist * Math.sin(tilt) * Math.sin(yaw), look.y + c.dist * Math.cos(tilt), look.z + c.dist * Math.sin(tilt) * Math.cos(yaw))
     const pc = camera as THREE.PerspectiveCamera
     pc.near = Math.max(0.0005, c.dist * 0.01)
     pc.far = c.dist * 14 + 4
     pc.updateProjectionMatrix()
     camera.lookAt(look)
+  })
+  return null
+}
+
+/** Tells the archipelago where a place's finer paper is resolving, so it can give way there. */
+function DetailBox() {
+  useFrame(() => {
+    const w = journey.current
+    if (!w) return
+    const [place, weight] = resolving(w)
+    if (!place) { detail.mix.value = 0; return }
+    const a = AREAS[place]
+    detail.box.value.set(toX(a.west), toZ(a.north), toX(a.east), toZ(a.south))
+    detail.mix.value = weight
   })
   return null
 }
@@ -52,13 +67,15 @@ function Light({ shadows }: { shadows: boolean }) {
   }, [shadows])
   const hemi = useMemo(() => new THREE.HemisphereLight('#ffffff', '#223', 0.6), [])
   const fog = useMemo(() => new THREE.Fog('#ffffff', 10, 60), [])
+  const target = useMemo(() => new THREE.Vector3(), [])
+  const dir = useMemo(() => new THREE.Vector3(), [])
   useFrame(({ camera }) => {
     const w = journey.current
     if (!w) return
     const c = w.camera
-    const target = new THREE.Vector3(toX(c.lon), 0, toZ(c.lat))
+    target.set(toX(c.lon), 0, toZ(c.lat))
     const az = w.sun.azimuth, el = w.sun.elevation
-    const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el))
+    dir.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el))
     sun.position.copy(target).addScaledVector(dir, c.dist * 2.5)
     sun.target.position.copy(target)
     sun.target.updateMatrixWorld()
@@ -72,6 +89,7 @@ function Light({ shadows }: { shadows: boolean }) {
       s.updateProjectionMatrix()
       sun.shadow.normalBias = c.dist * 0.002
     }
+    // the sky light is a pale tint of the whole sky, not its darkest colour
     hemi.color.set(mixColor(mixColor(w.sky[0], w.sky[1], 0.5), '#ffffff', 0.45))
     hemi.groundColor.set(mixColor(w.land[0], '#000000', 0.4))
     hemi.intensity = w.ambient * 2
@@ -89,16 +107,23 @@ function Light({ shadows }: { shadows: boolean }) {
   )
 }
 
-/** Only the areas the journey is in (or passing through) are laid out; the archipelago always is. */
+/** How many places' finer paper may stay laid out at once (phones have little memory to spare). */
+const KEEP = 3
+
+/** The archipelago is always laid; a place is laid when the journey heads for it, and the oldest put away. */
 function Lands({ shadows, onReady }: { shadows: boolean; onReady: () => void }) {
-  const [wanted, setWanted] = useState<AreaName[]>(['archipelago'])
+  const [laid, setLaid] = useState<AreaName[]>([])
   useFrame(() => {
     const w = journey.current
-    if (!w) return
-    const need = AREA_NAMES.filter((a) => a === 'archipelago' || (w.areaWeights[a] ?? 0) > 0 || place.area === a)
-    if (need.some((a) => !wanted.includes(a))) setWanted((cur) => [...new Set([...cur, ...need])])
+    if (!w || w.area === 'archipelago' || laid[laid.length - 1] === w.area) return
+    setLaid((cur) => [...cur.filter((a) => a !== w.area), w.area].slice(-KEEP))
   })
-  return <>{wanted.map((a) => <PaperLand key={a} area={a} shadows={shadows} onReady={a === 'archipelago' ? onReady : undefined} />)}</>
+  return (
+    <>
+      <PaperLand area="archipelago" shadows={shadows} onReady={onReady} />
+      {laid.map((a) => <PaperLand key={a} area={a} shadows={shadows} />)}
+    </>
+  )
 }
 
 /**
@@ -126,11 +151,11 @@ export default function Stage() {
           {/* still struggling in the lite tier once the land is laid out: the flat journey reads better */}
           {ready && tier === 'lite' && <PerformanceMonitor bounds={() => [18, 26]} iterations={16} onDecline={fallBackToStatic} />}
           <CameraRig />
+          <DetailBox />
           <Light shadows={shadows} />
           <Lands shadows={shadows} onReady={onReady} />
           <Pins />
           <Props />
-          <Clouds count={tier === 'high' ? 16 : 9} />
         </Canvas>
       </div>
     </>

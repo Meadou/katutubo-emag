@@ -7,6 +7,7 @@ lon: 124.75
 lat: 6.3
 color: #d1495b
 tagline: Dream weavers of Lake Sebu.
+angle: Woven in Dreams
 objects: loom, spirits, gong, spirits, loom
 draft: true
 ---

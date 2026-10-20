@@ -2,19 +2,76 @@ import * as THREE from 'three'
 import type { Sheet } from '../worlds/land'
 
 /**
- * Shared paper helpers. World space: x = lon - 122, z = -(lat - 12), 1 unit = 1 degree; sheets stack
- * upward in y at a fixed gap per area (a diorama, not a survey: real relief would be invisible).
+ * Shared paper helpers. World space: x = lon - 122, z = -(lat - 12), 1 unit = 1 degree.
+ *
+ * Every area stacks its sheets by the same rule, so a place's finer paper lines up with the
+ * archipelago's coarser paper as the camera zooms in. Heights follow the square root of elevation:
+ * cut at the shared contour levels, that spaces the sheets almost evenly, like a paper diorama.
  */
 export const toX = (lon: number) => lon - 122
 export const toZ = (lat: number) => -(lat - 12)
 
-/** Sheet gap per area, so each diorama reads clearly at the distance the camera views it from. */
-export const GAP: Record<string, number> = { archipelago: 0.055, cordillera: 0.009, mindoro: 0.0095, lakesebu: 0.0046 }
+const COAST = 0.012
+const RISE = 0.0032
+/** The open sea's floor, below the shallow shelf at height 0. */
+export const SEA_FLOOR = -0.012
+/** Height of the top of a sheet cut at `level` metres. */
+export const heightOf = (level: number) => (level <= 0 ? 0 : COAST + RISE * Math.sqrt(level))
+/** Where a level sits on a world's colour ramp, shore to summit. */
+export const shadeOf = (level: number) => Math.min(1, Math.max(0, Math.sqrt(Math.max(0, level) / 2400)))
+
+/**
+ * The place whose finer paper is resolving, shared by every archipelago sheet: inside its box the
+ * archipelago gives way, pixel by pixel, as `mix` goes from 0 to 1. Box: x0, z0, x1, z1.
+ */
+export const detail = {
+  box: { value: new THREE.Vector4(0, 0, 0, 0) },
+  mix: { value: 0 },
+}
+export type Detail = typeof detail
+export const newDetail = (): Detail => ({ box: { value: new THREE.Vector4(0, 0, 0, 0) }, mix: { value: 0 } })
+
+// the archipelago keeps a hairline just inside the box, so the two papers always meet without a gap
+const EDGE = 0.0006
+const BOX_GLSL = /* glsl */ `
+  uniform vec4 uBox;
+  uniform float uMix;
+  varying vec3 vPaperWorld;
+  bool paperInBox(float e) {
+    return vPaperWorld.x > uBox.x + e && vPaperWorld.x < uBox.z - e && vPaperWorld.z > uBox.y + e && vPaperWorld.z < uBox.w - e;
+  }
+  // interleaved gradient noise: an even, still dither for the dissolve
+  float paperDither() { return fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))); }
+`
+
+/**
+ * How a sheet takes part in the zoom: `base` is the archipelago (gives way inside the resolving
+ * place), `detail` is a place's finer paper (only inside its box, as far as it has resolved), and
+ * `plain` is anything else.
+ */
+export type Role = 'base' | 'detail' | 'plain'
+
+function inject(shader: THREE.WebGLProgramParametersWithUniforms, role: Role, u: Detail) {
+  if (role === 'plain') return
+  shader.uniforms.uBox = u.box
+  shader.uniforms.uMix = u.mix
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vPaperWorld;')
+    .replace('#include <project_vertex>', '#include <project_vertex>\nvPaperWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+  // the place keeps its own side walls at the box edge: where it stands higher than the map, they read as a cut cliff
+  const test = role === 'base' ? `if (paperInBox(${EDGE}) && paperDither() < uMix) discard;` : 'if (!paperInBox(-0.00001) || paperDither() >= uMix) discard;'
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>\n${BOX_GLSL}`)
+    .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${test}`)
+}
 
 /** Flat paper with a fine, still grain (screen-space, so it never crawls as the camera moves). */
-export function paperMaterial(color = '#ffffff') {
+export function paperMaterial(color = '#ffffff', role: Role = 'plain', u: Detail = detail) {
   const m = new THREE.MeshLambertMaterial({ color })
+  // where the map gives way to a place, its sheets are cut open: both faces of the paper are drawn, so a cut shows paper, not a hole
+  if (role === 'base') m.side = THREE.DoubleSide
   m.onBeforeCompile = (shader) => {
+    inject(shader, role, u)
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <color_fragment>',
       `#include <color_fragment>
@@ -22,6 +79,24 @@ export function paperMaterial(color = '#ffffff') {
        diffuseColor.rgb *= 0.965 + 0.05 * grain;`,
     )
   }
+  m.customProgramCacheKey = () => `paper-${role}`
+  return m
+}
+
+/** The shadow-casting twin of a base sheet: inside a resolved place it casts nothing, so it never darkens the finer paper. */
+export function baseDepthMaterial(u: Detail = detail) {
+  const m = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking })
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uBox = u.box
+    shader.uniforms.uMix = u.mix
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vPaperWorld;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvPaperWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\n${BOX_GLSL}`)
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\nif (paperInBox(${EDGE}) && uMix > 0.5) discard;`)
+  }
+  m.customProgramCacheKey = () => 'paper-depth-base'
   return m
 }
 
@@ -56,12 +131,18 @@ export function inRing(r: number[], lon: number, lat: number) {
   return inside
 }
 
-/** Height of the paper stack at a point: the top of the highest sheet that covers it. */
-export function stackHeightAt(sheets: Sheet[], gap: number, lon: number, lat: number, base = 0) {
+/** The highest level whose sheet covers a point (or -Infinity over open sea). */
+export function levelAt(sheets: Sheet[], lon: number, lat: number) {
   for (let k = sheets.length - 1; k >= 0; k--) {
     for (const [outer, ...holes] of sheets[k].polys) {
-      if (inRing(outer, lon, lat) && !holes.some((h) => inRing(h, lon, lat))) return base + (k + 1) * gap
+      if (inRing(outer, lon, lat) && !holes.some((h) => inRing(h, lon, lat))) return sheets[k].level
     }
   }
-  return base
+  return -Infinity
+}
+
+/** Height of the paper at a point: the top of the highest sheet that covers it. */
+export const groundAt = (sheets: Sheet[], lon: number, lat: number) => {
+  const l = levelAt(sheets, lon, lat)
+  return l === -Infinity ? SEA_FLOOR : heightOf(l)
 }

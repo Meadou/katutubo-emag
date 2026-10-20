@@ -9,7 +9,7 @@ type Box = [number, number, number, number]
 
 /**
  * Overview demo: the paper archipelago with the people's region cut out and lit. One tap zooms the
- * little map into the region and back, so the reader sees where the dive landed.
+ * little map into the region and back, so the reader sees where the journey has come down.
  */
 export default function RegionMap({ lon, lat, area }: { lon: number; lat: number; area: AreaName }) {
   const land = useLand('archipelago')
@@ -47,8 +47,8 @@ export default function RegionMap({ lon, lat, area }: { lon: number; lat: number
     <div className="region">
       <svg ref={svg} viewBox={whole.join(' ')} className="region__map" role="img" aria-label={s.title}>
         <rect x={-2} y={-2} width={A.east - A.west + 4} height={A.north - A.south + 4} fill="#cfdde3" />
-        {paths?.sheets.filter((p) => !p.sea).map((p, i) => (
-          <path key={i} d={p.d} fillRule="evenodd" fill={['#9fb8a2', '#86a58c', '#6f9278', '#5a7f66', '#476c55'][Math.min(4, p.k)]} />
+        {paths?.sheets.filter((p) => p.level > 0).map((p, i) => (
+          <path key={i} d={p.d} fillRule="evenodd" fill={['#9fb8a2', '#86a58c', '#6f9278', '#5a7f66', '#476c55'][Math.min(4, i)]} />
         ))}
         <rect x={R.west - A.west} y={A.north - R.north} width={rw} height={rh} className="region__cut" />
         <circle cx={lon - A.west} cy={A.north - lat} r={zoomed ? 0.02 : 0.16} className="region__pin" />

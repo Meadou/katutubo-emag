@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { journey } from '../worlds/engine'
 import { OBJECTS } from './props/registry'
-import { place } from './place'
+import { groundUnder } from './place'
 import { toX, toZ } from './paper'
 
 /**
@@ -15,11 +15,13 @@ function Prop({ id }: { id: string }) {
   const root = useRef<THREE.Group>(null!)
   const Comp = OBJECTS[id]
   useFrame(() => {
-    const w = journey.current, f = place.focus
-    if (!w || !f || !place.area) return
-    const weight = (w.propWeights[id] ?? 0) * (w.areaWeights[place.area] ?? 0)
+    const w = journey.current, site = w?.site
+    if (!w || !site) { if (root.current) root.current.visible = false; return }
+    // an object stands only on its place's finer paper, never on the coarse map
+    const weight = (w.propWeights[id] ?? 0) * (w.area === 'archipelago' ? 0 : w.areaWeights[w.area] ?? 0)
     root.current.visible = weight > 0.01
-    root.current.position.set(toX(f.lon), place.ground[place.area] ?? 0, toZ(f.lat))
+    if (!root.current.visible) return
+    root.current.position.set(toX(site.lon), groundUnder(w, site.lon, site.lat), toZ(site.lat))
     // folded flat at 0, standing at 1 (eased by the world's own damping)
     hinge.current.rotation.x = -Math.PI / 2 * (1 - THREE.MathUtils.smoothstep(weight, 0.15, 0.95))
   })

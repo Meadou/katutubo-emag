@@ -8,15 +8,15 @@ import { strings } from '../i18n/t'
  * The anime.js pattern on paper: a short title, one plain sentence, the chapter's key terms as points,
  * then the rest of the text arriving strip by strip. Nothing is cut: every word of the article is here.
  */
-export function ChapterCard({ chapter, index }: { chapter: Chapter; index: number }) {
+export function ChapterCard({ chapter, index, people, id }: { chapter: Chapter; index: number; people: string; id: string }) {
   const { lede, rest } = useMemo(() => splitLede(chapter.html), [chapter.html])
   return (
-    <article className="card chapter-card" aria-labelledby={`h-${chapter.id}`}>
-      <p className="chapter-card__no" aria-hidden="true">{String(index + 1).padStart(2, '0')}</p>
-      <h2 id={`h-${chapter.id}`}>{chapter.title}</h2>
+    <article className="card chapter-card" aria-labelledby={`h-${id}`}>
+      <p className="chapter-card__no"><span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span> {people}</p>
+      <h2 id={`h-${id}`}>{chapter.title}</h2>
       {lede && <p className="lede" dangerouslySetInnerHTML={{ __html: lede }} />}
       {chapter.terms.length > 0 && (
-        <ul className="points" aria-label={strings.issue.terms}>
+        <ul className="points" aria-label={strings.journey.terms}>
           {chapter.terms.map((t) => <li key={t}>{t}</li>)}
         </ul>
       )}

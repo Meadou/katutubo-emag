@@ -18,6 +18,12 @@ const CACHE = join(ROOT, 'scripts', 'worlds', '.cache')
 const OUT = join(ROOT, 'public', 'worlds')
 const TILE = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`
 
+// Every area cuts its paper at the same elevations, so a place's finer paper lines up with the
+// archipelago's as the camera zooms in (the archipelago's levels are a subset of these).
+const FINE = [-200, 1, 150, 300, 500, 700, 950, 1200, 1500, 1800, 2100, 2400, 2700]
+const place = (name, west, east, south, north, w, h, extra = {}) =>
+  ({ name, zoom: 11, w, h, west, east, south, north, levels: FINE, tolerance: 1.4, minArea: 30, digits: 4, smooth: 1, ...extra })
+
 const AREAS = [
   {
     // the whole archipelago, about 1.2 km per sample; Sabah (Malaysian Borneo) is masked to sea
@@ -25,21 +31,18 @@ const AREAS = [
     mask: (lon, lat) => lon < 119.6 && lat < 7.45,
     levels: [-200, 1, 300, 700, 1200, 1800], tolerance: 1.1, minArea: 5, digits: 3, smooth: 1,
   },
-  {
-    // Ifugao: the Cordillera around Banaue, Kiangan and Mt Pulag
-    name: 'cordillera', zoom: 11, w: 768, h: 768, west: 120.75, east: 121.45, south: 16.55, north: 17.25,
-    step: 250, tolerance: 1.4, minArea: 30, digits: 4, smooth: 1,
-  },
-  {
-    // Mangyan: the interior uplands of Mindoro, coast to coast
-    name: 'mindoro', zoom: 11, w: 768, h: 768, west: 120.75, east: 121.45, south: 12.6, north: 13.3,
-    levels: [-100, 1, 250, 550, 900, 1300, 1750, 2200], tolerance: 1.4, minArea: 30, digits: 4, smooth: 1,
-  },
-  {
-    // T'boli: the highlands around Lake Sebu
-    name: 'lakesebu', zoom: 12, w: 640, h: 640, west: 124.55, east: 124.85, south: 6.06, north: 6.36,
-    step: 150, tolerance: 1.3, minArea: 30, digits: 4, smooth: 1, lakeSeed: [124.7, 6.21],
-  },
+  // Luzon
+  place('kalinga', 120.95, 121.6, 17.1, 17.7, 715, 660, { inland: true }),
+  place('cordillera', 120.75, 121.45, 16.55, 17.25, 768, 768, { inland: true }),
+  place('caraballo', 120.95, 121.85, 15.8, 16.5, 800, 620, { inland: true }),
+  // Visayas: the Panay highlands (Suludnon, Ati) and the southern Negros highlands (Magahat)
+  place('panay', 121.9, 122.75, 10.8, 11.6, 760, 715),
+  place('negros', 122.55, 123.35, 9.0, 9.8, 720, 720),
+  // Mindanao
+  // reaches Iligan Bay at its north edge
+  place('lanao', 123.95, 124.6, 7.55, 8.2, 720, 720, { lakeSeed: [124.2, 7.85] }),
+  place('lakesebu', 124.55, 124.85, 6.06, 6.36, 640, 640, { inland: true, zoom: 12, tolerance: 1.3, lakeSeed: [124.7, 6.21] }),
+  place('tawitawi', 119.6, 120.5, 4.75, 5.55, 800, 710),
 ]
 
 const lon2x = (lon, z) => ((lon + 180) / 360) * 2 ** z
@@ -81,12 +84,18 @@ async function grid(a) {
       m[j * a.w + i] = v
     }
   }
-  // the source carries a few single-sample spikes; flatten any sample 600 m above all four neighbours
+  // the source carries spikes and voids; flatten any sample 600 m above or below all four neighbours,
+  // a few times over so small clusters fill in from their edges
   const at = (i, j) => m[j * a.w + i]
-  for (let j = 1; j < a.h - 1; j++) for (let i = 1; i < a.w - 1; i++) {
-    const n = [at(i - 1, j), at(i + 1, j), at(i, j - 1), at(i, j + 1)]
-    if (at(i, j) - Math.max(...n) > 600) m[j * a.w + i] = n.reduce((x, y) => x + y) / 4
+  for (let pass = 0; pass < 6; pass++) {
+    for (let j = 1; j < a.h - 1; j++) for (let i = 1; i < a.w - 1; i++) {
+      const n = [at(i - 1, j), at(i + 1, j), at(i, j - 1), at(i, j + 1)]
+      const v = at(i, j)
+      if (v - Math.max(...n) > 600 || Math.min(...n) - v > 600) m[j * a.w + i] = n.reduce((x, y) => x + y) / 4
+    }
   }
+  // inland places have no sea: anything below sea level there is a hole in the data
+  if (a.inland) for (let p = 0; p < m.length; p++) m[p] = Math.max(m[p], 2)
   return m
 }
 
@@ -120,14 +129,21 @@ const ringArea = (r) => {
   return s / 2
 }
 
-/** Chaikin corner cutting on a closed ring: each pass rounds every corner, like a curve cut by hand. */
-function chaikin(ring, passes) {
+/**
+ * Chaikin corner cutting on a closed ring: each pass rounds every corner, like a curve cut by hand.
+ * Points on the edge of the grid stay put, so a sheet that fills a place's box keeps square corners
+ * and meets the archipelago's paper there without a gap.
+ */
+function chaikin(ring, passes, w, h) {
+  const fixed = ([x, y]) => x <= 0.5 || y <= 0.5 || x >= w - 0.5 || y >= h - 0.5
   let r = ring.slice(0, -1)
   for (let p = 0; p < passes; p++) {
     const out = []
     for (let i = 0; i < r.length; i++) {
-      const [ax, ay] = r[i], [bx, by] = r[(i + 1) % r.length]
-      out.push([ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25], [ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75])
+      const a = r[i], b = r[(i + 1) % r.length]
+      const [ax, ay] = a, [bx, by] = b
+      out.push(fixed(a) ? a : [ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25])
+      if (!fixed(b)) out.push([ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75])
     }
     r = out
   }
@@ -146,7 +162,7 @@ function toPolys(multi, a, tol, minArea, digits, smooth = 0) {
       if (Math.abs(ringArea(ring)) < (k === 0 ? minArea : minArea * 2)) { if (k === 0) break; continue }
       let s = simplify(ring, tol)
       if (s.length < 4) { if (k === 0) break; continue }
-      if (smooth) s = chaikin(s, smooth)
+      if (smooth) s = chaikin(s, smooth, a.w, a.h)
       rings.push(s.slice(0, -1).flatMap(([x, y]) => [lon(x), lat(y)]))
     }
     if (rings.length) polys.push(rings)

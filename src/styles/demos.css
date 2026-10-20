@@ -37,29 +37,6 @@
 @keyframes swing { 20% { transform: rotate(-5deg); } 55% { transform: rotate(3deg); } }
 .gongs__how { font-size: 14px; color: var(--ink-soft); }
 
-/* pluck */
-.pluck { position: relative; }
-.pluck__body { display: block; width: 100%; }
-.pluck__wood { fill: #8a5a33; stroke: #4e3119; stroke-width: 2; }
-.pluck__hole { fill: #3a2414; }
-.pluck__fret { fill: #e6d3b1; }
-.pluck__strings { position: absolute; left: 6%; right: 6%; top: 36%; height: 28%; display: grid; grid-template-rows: repeat(var(--n), 1fr); }
-.pluck__string { position: relative; padding: 0; border: 0; background: none; cursor: pointer; }
-.pluck__string i { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #f2e6cf; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
-.pluck__string i.is-on { animation: thrum 0.6s var(--ease-out); }
-@keyframes thrum { 0%, 100% { transform: none; } 15% { transform: translateY(-2px) scaleY(2); } 35% { transform: translateY(2px); } 60% { transform: translateY(-1px); } }
-
-/* syllables */
-.syllables__bamboo { display: block; width: 100%; }
-.bamboo__tube { fill: #c9b06a; stroke: #7a6531; stroke-width: 2; }
-.bamboo__node { fill: #8f7a3d; }
-.bamboo__mark { fill: none; stroke: #3a2a12; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 0.6s var(--ease-out); }
-.bamboo__mark.is-on { stroke-dashoffset: 0; }
-.syllables__beats { list-style: none; display: flex; gap: 6px; margin: 14px 0 0; padding: 0; }
-.beat { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; cursor: pointer; font: 600 14px/1 var(--text); transition: background-color 0.25s ease, color 0.25s ease; }
-.beat.is-on { background: var(--ink); color: var(--paper); }
-.syllables__done { margin-top: 10px; min-height: 1.5em; font: 400 18px/1.3 var(--display); }
-
 /* terms (still: no motion here at all) */
 .terms__list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
 .term { padding: 6px 13px; border: 1px solid var(--line-strong); border-radius: 999px; background: transparent; cursor: pointer; font: 600 14px/1.3 var(--text); }
