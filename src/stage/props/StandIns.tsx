@@ -6,8 +6,11 @@ import { journey } from '../../worlds/engine'
 import { DESIGNS } from '../../worlds/issues'
 import type { PropProps } from './registry'
 
-/** Procedural stand-ins, cut from paper and standing still. A real model can replace any of them via fromFactory. */
-const S = 0.02
+/**
+ * Procedural stand-ins, cut from paper and standing still. A real model can replace any of them via
+ * fromFactory. They are drawn at map scale: about a quarter of the view at a chapter's distance.
+ */
+const S = 0.12
 
 /** Which gongs the people being read play, by their Music demo: flat (Ifugao gangsa) or bossed (T'boli klintang). */
 const bossedHere = () => {

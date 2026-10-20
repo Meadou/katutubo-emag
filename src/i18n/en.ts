@@ -83,6 +83,7 @@ export const en = {
     made: 'A static website, with no database and no tracking. The land is cut from paper sheets, one for each contour of open elevation data (Terrain Tiles on AWS: SRTM, ETOPO1 and other sources). The terraced mountain and the objects are drawn for illustration. The wind and water you can turn on, and any instrument, are synthesized in your browser to suggest a sound; nothing is a recording or a traditional piece.',
   },
   loading: 'Laying out the paper',
+  loaded: 'Ready',
   notFound: { title: 'Story not found', back: 'Back to the issues' },
 }
 

@@ -19,10 +19,19 @@ export function useStage(sectionId: string, stops: number[]): number {
   return stage
 }
 
-/** Calls `apply(progress)` every frame for a section (for drawings that follow the scroll exactly). */
+/**
+ * Calls `apply(progress)` for a section whenever its progress changes (for drawings that follow the
+ * scroll exactly). Nothing is redrawn while the reader is elsewhere or still.
+ */
 export function useProgressFrame(sectionId: string, apply: (p: number) => void) {
   useEffect(() => {
     if (journey.calm) { apply(1); return }
-    return onFrame(() => apply(journey.progress[sectionId] ?? 0))
+    let last = -1
+    return onFrame(() => {
+      const p = journey.progress[sectionId] ?? 0
+      if (p === last) return
+      last = p
+      apply(p)
+    })
   }, [sectionId, apply])
 }

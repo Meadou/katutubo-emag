@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { AreaName } from './types'
 
-/** One baked paper area (see scripts/worlds/bake.mjs). Rings are flat [lon, lat, lon, lat, ...]. */
+/** One sheet of the baked paper map (see scripts/worlds/bake.mjs). Rings are flat [lon, lat, lon, lat, ...]. */
 export interface Sheet { level: number; polys: number[][][] }
 export interface Land {
   name: string
@@ -11,44 +10,41 @@ export interface Land {
   north: number
   levels: number[]
   sheets: Sheet[]
-  lake?: Sheet
+  lakes?: Sheet
 }
-/** The procedural hero terraces: a unit square of sheets, and forest trees as [x, y, height, ...]. */
-export interface TerraceModel { name: 'terraces'; levels: number[]; sheets: Sheet[]; trees: number[] }
 
-const cache = new Map<string, Promise<unknown>>()
+let pending: Promise<Land> | null = null
 
-/** The baked files store rings as small integers from the area's south-west corner; turn them into lon/lat. */
-function decode<T extends { west?: number; south?: number; q?: number; sheets: Sheet[]; lake?: Sheet }>(raw: T): T {
-  if (!raw.q) return raw
-  const q = raw.q, x0 = raw.west ?? 0, y0 = raw.south ?? 0
+/** The baked file stores rings as small integers from the map's south-west corner; turn them into lon/lat. */
+function decode(raw: Land & { q?: number; lake?: Sheet }): Land {
+  const lakes = raw.lakes ?? raw.lake
+  if (!raw.q) return { ...raw, lakes }
+  const q = raw.q, x0 = raw.west, y0 = raw.south
   const ring = (r: number[]) => r.map((v, i) => (i % 2 === 0 ? x0 + v * q : y0 + v * q))
   const sheet = (s: Sheet): Sheet => ({ level: s.level, polys: s.polys.map((p) => p.map(ring)) })
-  return { ...raw, sheets: raw.sheets.map(sheet), lake: raw.lake ? sheet(raw.lake) : undefined }
+  return { ...raw, sheets: raw.sheets.map(sheet), lakes: lakes ? sheet(lakes) : undefined }
 }
 
-export function loadLand(name: AreaName): Promise<Land>
-export function loadLand(name: 'terraces'): Promise<TerraceModel>
-export function loadLand(name: string): Promise<unknown> {
-  let p = cache.get(name)
-  if (!p) {
-    p = fetch(`${import.meta.env.BASE_URL}worlds/${name}.json`).then((r) => {
-      if (!r.ok) throw new Error(`worlds/${name}.json: ${r.status}`)
+/** The one paper map, fetched once. */
+export function loadMap(): Promise<Land> {
+  if (!pending) {
+    pending = fetch(`${import.meta.env.BASE_URL}worlds/archipelago.json`).then((r) => {
+      if (!r.ok) throw new Error(`worlds/archipelago.json: ${r.status}`)
       return r.json()
     }).then(decode)
-    cache.set(name, p)
+    // a failed fetch may be tried again
+    pending.catch(() => { pending = null })
   }
-  return p
+  return pending
 }
 
-/** The paper for an area once it has loaded (null until then, and on failure: the page still reads). */
-export function useLand(name: AreaName | null): Land | null {
+/** The paper map once it has loaded (null until then, and on failure: the page still reads). */
+export function useMap(): Land | null {
   const [land, setLand] = useState<Land | null>(null)
   useEffect(() => {
-    if (!name) return
     let live = true
-    loadLand(name).then((l) => { if (live) setLand(l) }, () => { if (live) setLand(null) })
+    loadMap().then((l) => { if (live) setLand(l) }, () => { if (live) setLand(null) })
     return () => { live = false }
-  }, [name])
-  return land && name && land.name === name ? land : null
+  }, [])
+  return land
 }

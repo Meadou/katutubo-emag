@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
@@ -9,10 +9,10 @@ import Props from './Props'
 import StaticWorld from '../static/StaticWorld'
 import { journey } from '../worlds/engine'
 import { fallBackToStatic, lowPower } from '../worlds/mode'
-import { AREAS, type AreaName } from '../worlds/types'
 import { mixColor } from '../worlds/blend'
-import { groundUnder, resolving } from './place'
-import { detail, toX, toZ } from './paper'
+import { useLoading } from '../ui/loading'
+import { groundHeight } from './place'
+import { toX, toZ } from './paper'
 
 type Tier = 'high' | 'lite'
 
@@ -28,7 +28,7 @@ function CameraRig() {
     const w = journey.current
     if (!w) return
     const c = w.camera
-    y.current = THREE.MathUtils.damp(y.current, groundUnder(w, c.lon, c.lat), 4, dt)
+    y.current = THREE.MathUtils.damp(y.current, groundHeight(c.lon, c.lat), 4, dt)
     const yaw = c.yaw + pointer.x * 0.05 * w.drift
     const tilt = Math.min(1.35, c.tilt + pointer.y * 0.025 * w.drift)
     look.set(toX(c.lon), y.current, toZ(c.lat))
@@ -42,27 +42,21 @@ function CameraRig() {
   return null
 }
 
-/** Tells the archipelago where a place's finer paper is resolving, so it can give way there. */
-function DetailBox() {
-  useFrame(() => {
-    const w = journey.current
-    if (!w) return
-    const [place, weight] = resolving(w)
-    if (!place) { detail.mix.value = 0; return }
-    const a = AREAS[place]
-    detail.box.value.set(toX(a.west), toZ(a.north), toX(a.east), toZ(a.south))
-    detail.mix.value = weight
-  })
-  return null
-}
-
 /** Sun, sky light and fog, all taken from the world the reader is in. */
 function Light({ shadows }: { shadows: boolean }) {
-  const { scene } = useThree()
+  const { scene, gl } = useThree()
+  // shadows are drawn again only when something that casts or frames them has moved
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    return () => { gl.shadowMap.autoUpdate = true }
+  }, [gl, shadows])
+  const shadowKey = useRef('')
   const sun = useMemo(() => {
     const l = new THREE.DirectionalLight('#ffffff', 2)
     l.castShadow = shadows
-    l.shadow.mapSize.set(2048, 2048)
+    // at map scale the paper's shadows are broad: a modest shadow map is plenty, and cheap on laptops
+    l.shadow.mapSize.set(1024, 1024)
     l.shadow.bias = -0.0004
     return l
   }, [shadows])
@@ -83,6 +77,9 @@ function Light({ shadows }: { shadows: boolean }) {
     sun.color.set(w.sun.color)
     sun.intensity = w.sun.intensity
     if (shadows) {
+      // the shadow frame follows the world's camera target and sun (not the pointer drift), and the props as they rise
+      const key = `${c.lon.toFixed(4)}:${c.lat.toFixed(4)}:${c.dist.toFixed(4)}:${az.toFixed(3)}:${el.toFixed(3)}:${Object.values(w.propWeights).map((v) => v.toFixed(2)).join()}`
+      if (key !== shadowKey.current) { shadowKey.current = key; gl.shadowMap.needsUpdate = true }
       const s = sun.shadow.camera as THREE.OrthographicCamera
       const half = c.dist * 0.9
       s.left = -half; s.right = half; s.top = half; s.bottom = -half
@@ -108,23 +105,23 @@ function Light({ shadows }: { shadows: boolean }) {
   )
 }
 
-/** How many places' finer paper may stay laid out at once (phones have little memory to spare). */
-const KEEP = 3
-
-/** The archipelago is always laid; a place is laid when the journey heads for it, and the oldest put away. */
-function Lands({ shadows, onReady }: { shadows: boolean; onReady: () => void }) {
-  const [laid, setLaid] = useState<AreaName[]>([])
-  useFrame(() => {
-    const w = journey.current
-    if (!w || w.area === 'archipelago' || laid[laid.length - 1] === w.area) return
-    setLaid((cur) => [...cur.filter((a) => a !== w.area), w.area].slice(-KEEP))
-  })
-  return (
-    <>
-      <PaperLand area="archipelago" shadows={shadows} onReady={onReady} />
-      {laid.map((a) => <PaperLand key={a} area={a} shadows={shadows} />)}
-    </>
-  )
+/**
+ * Once the map is laid, compiles every shader the journey will use, behind the loading screen, so
+ * nothing stalls on the way. (Synchronous on purpose: the asynchronous path can take many seconds on
+ * some integrated GPUs, and the reader is waiting on the loader anyway.)
+ */
+function WarmUp({ laidOut, onDone }: { laidOut: boolean; onDone: () => void }) {
+  const { gl, scene, camera } = useThree()
+  useEffect(() => {
+    if (!laidOut) return
+    // compiles every material in the scene, hidden props included (three walks the whole scene)
+    gl.compile(scene, camera)
+    const raf = requestAnimationFrame(onDone)
+    return () => cancelAnimationFrame(raf)
+  }, [laidOut, gl, scene, camera, onDone])
+  // development only: lets a test driver read the renderer's draw calls
+  if (import.meta.env.DEV) (window as unknown as { __gl: typeof gl }).__gl = gl
+  return null
 }
 
 /**
@@ -134,8 +131,12 @@ function Lands({ shadows, onReady }: { shadows: boolean; onReady: () => void }) 
  */
 export default function Stage() {
   const [tier, setTier] = useState<Tier>(() => (lowPower() ? 'lite' : 'high'))
+  const [laidOut, setLaidOut] = useState(false)
   const [ready, setReady] = useState(false)
-  const onReady = useCallback(() => setReady(true), [])
+  const mark = useLoading((s) => s.mark)
+  useEffect(() => { mark({ stage: true }) }, [mark])
+  const onLaid = useCallback(() => setLaidOut(true), [])
+  const onCompiled = useCallback(() => { setReady(true); mark({ compiled: true }) }, [mark])
   const shadows = tier === 'high'
   return (
     <>
@@ -143,7 +144,7 @@ export default function Stage() {
       <div className="stage" aria-hidden="true" style={{ opacity: ready ? 1 : 0, transition: 'opacity 0.8s ease' }}>
         <Canvas
           flat
-          shadows={shadows ? { type: THREE.PCFSoftShadowMap } : false}
+          shadows={shadows ? { type: THREE.PCFShadowMap } : false}
           dpr={tier === 'high' ? [1, 2] : [1, 1.25]}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
           camera={{ fov: 35, near: 0.01, far: 200, position: [0, 30, 4] }}
@@ -152,12 +153,12 @@ export default function Stage() {
           {/* still struggling in the lite tier once the land is laid out: the flat journey reads better */}
           {ready && tier === 'lite' && <PerformanceMonitor bounds={() => [18, 26]} iterations={16} onDecline={fallBackToStatic} />}
           <CameraRig />
-          <DetailBox />
           <Light shadows={shadows} />
-          <Lands shadows={shadows} onReady={onReady} />
+          <PaperLand shadows={shadows} onReady={onLaid} />
           <Pins />
           <MapHotspots />
           <Props />
+          <WarmUp laidOut={laidOut} onDone={onCompiled} />
         </Canvas>
       </div>
     </>

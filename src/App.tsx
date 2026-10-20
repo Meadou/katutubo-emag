@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Nav from './ui/Nav'
+import Loader from './ui/Loader'
 import SoundBed from './ui/SoundBed'
 import Journey from './pages/Journey'
 import IssueIndex from './pages/IssueIndex'
@@ -8,7 +9,8 @@ import About from './pages/About'
 import StaticWorld from './static/StaticWorld'
 import { journey, startEngine } from './worlds/engine'
 import { useMode } from './worlds/mode'
-import { loadLand } from './worlds/land'
+import { loadMap } from './worlds/land'
+import { isReady, useLoading } from './ui/loading'
 
 // three.js is the heavy part of the bundle; the flat paper world paints first while it loads.
 const Stage = lazy(() => import('./stage/Stage'))
@@ -16,11 +18,16 @@ const Stage = lazy(() => import('./stage/Stage'))
 export default function App() {
   const mode = useMode()
   journey.calm = mode === 'static'
+  const mark = useLoading((s) => s.mark)
+  const ready = useLoading((s) => isReady(s, mode === 'live'))
 
   useEffect(() => {
     startEngine()
-    void loadLand('archipelago').catch(() => {})
-  }, [])
+    // the map and the fonts are waited for once; a failure lets the page through (it still reads)
+    loadMap().then(() => mark({ map: true }), () => mark({ map: true }))
+    if (document.fonts) document.fonts.ready.then(() => mark({ fonts: true }), () => mark({ fonts: true }))
+    else mark({ fonts: true })
+  }, [mark])
   useEffect(() => { document.documentElement.classList.toggle('calm', mode === 'static') }, [mode])
 
   return (
@@ -35,7 +42,7 @@ export default function App() {
       )}
       <Nav />
       <SoundBed />
-      <main className="pages">
+      <main className="pages" aria-busy={!ready}>
         <Routes>
           <Route path="/" element={<Journey />} />
           <Route path="/group/:slug/:chapter?" element={<Journey />} />
@@ -44,6 +51,7 @@ export default function App() {
           <Route path="*" element={<Journey />} />
         </Routes>
       </main>
+      <Loader live={mode === 'live'} />
     </>
   )
 }

@@ -1,10 +1,10 @@
-// Bakes the paper worlds: one sheet of paper per contour of real elevation, for the archipelago and for
-// each issue's region, plus the procedural hero terraces. Run once: `node scripts/worlds/bake.mjs`.
+// Bakes the paper map: one sheet of paper per contour of real elevation, for the whole archipelago,
+// with Lake Lanao as a sheet of water. Run once: `node scripts/worlds/bake.mjs`.
 //
 // Elevation: Terrain Tiles on AWS Open Data (Terrarium encoding; SRTM, GMTED2010, ETOPO1 and other
 // open sources), https://registry.opendata.aws/terrain-tiles/. Contours: d3-contour.
-// Output, in public/worlds/<area>.json:
-//   { name, west, east, south, north, levels, sheets: [{ level, polys: [[outer, hole, ...], ...] }], lake? }
+// Output, public/worlds/archipelago.json:
+//   { name, west, east, south, north, q, levels, sheets: [{ level, polys: [[outer, hole, ...], ...] }], lakes? }
 // Rings are flat integer arrays [x, y, x, y, ...]: degrees east of `west` and north of `south`, in
 // steps of `q` degrees (the loader turns them back into lon/lat).
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -18,32 +18,14 @@ const CACHE = join(ROOT, 'scripts', 'worlds', '.cache')
 const OUT = join(ROOT, 'public', 'worlds')
 const TILE = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`
 
-// Every area cuts its paper at the same elevations, so a place's finer paper lines up with the
-// archipelago's as the camera zooms in (the archipelago's levels are a subset of these).
-const FINE = [-200, 1, 150, 300, 500, 700, 950, 1200, 1500, 1800, 2100, 2400, 2700]
-const place = (name, west, east, south, north, w, h, extra = {}) =>
-  ({ name, zoom: 11, w, h, west, east, south, north, levels: FINE, tolerance: 1.4, minArea: 30, digits: 4, smooth: 1, ...extra })
-
-const AREAS = [
-  {
-    // the whole archipelago, about 1.2 km per sample; Sabah (Malaysian Borneo) is masked to sea
-    name: 'archipelago', zoom: 7, w: 1024, h: 1580, west: 116.5, east: 127.0, south: 4.6, north: 20.8,
-    mask: (lon, lat) => lon < 119.6 && lat < 7.45,
-    levels: [-200, 1, 300, 700, 1200, 1800], tolerance: 1.1, minArea: 5, digits: 3, smooth: 1,
-  },
-  // Luzon
-  place('kalinga', 120.95, 121.6, 17.1, 17.7, 715, 660, { inland: true }),
-  place('cordillera', 120.75, 121.45, 16.55, 17.25, 768, 768, { inland: true }),
-  place('caraballo', 120.95, 121.85, 15.8, 16.5, 800, 620, { inland: true }),
-  // Visayas: the Panay highlands (Suludnon, Ati) and the southern Negros highlands (Magahat)
-  place('panay', 121.9, 122.75, 10.8, 11.6, 760, 715),
-  place('negros', 122.55, 123.35, 9.0, 9.8, 720, 720),
-  // Mindanao
-  // reaches Iligan Bay at its north edge
-  place('lanao', 123.95, 124.6, 7.55, 8.2, 720, 720, { lakeSeed: [124.2, 7.85] }),
-  place('lakesebu', 124.55, 124.85, 6.06, 6.36, 640, 640, { inland: true, zoom: 12, tolerance: 1.3, lakeSeed: [124.7, 6.21] }),
-  place('tawitawi', 119.6, 120.5, 4.75, 5.55, 800, 710),
-]
+const MAP = {
+  // the whole archipelago, about 1.2 km per sample; Sabah (Malaysian Borneo) is masked to sea
+  name: 'archipelago', zoom: 7, w: 1024, h: 1580, west: 116.5, east: 127.0, south: 4.6, north: 20.8,
+  mask: (lon, lat) => lon < 119.6 && lat < 7.45,
+  levels: [-200, 1, 300, 700, 1200, 1800], tolerance: 1.1, minArea: 5, digits: 3, smooth: 1,
+  // Lake Lanao, the lake of the Maranao ("people of the lake")
+  lakeSeed: [124.25, 7.85],
+}
 
 const lon2x = (lon, z) => ((lon + 180) / 360) * 2 ** z
 const lat2y = (lat, z) => {
@@ -94,8 +76,6 @@ async function grid(a) {
       if (v - Math.max(...n) > 600 || Math.min(...n) - v > 600) m[j * a.w + i] = n.reduce((x, y) => x + y) / 4
     }
   }
-  // inland places have no sea: anything below sea level there is a hole in the data
-  if (a.inland) for (let p = 0; p < m.length; p++) m[p] = Math.max(m[p], 2)
   return m
 }
 
@@ -123,6 +103,7 @@ function simplify(ring, tol) {
   return ring.filter((_, i) => keep[i])
 }
 
+const pairs = (flat) => { const out = []; for (let i = 0; i < flat.length; i += 2) out.push([flat[i], flat[i + 1]]); return out }
 const ringArea = (r) => {
   let s = 0
   for (let i = 0, j = r.length - 1; i < r.length; j = i++) s += (r[j][0] - r[i][0]) * (r[j][1] + r[i][1])
@@ -195,75 +176,27 @@ async function bakeArea(a) {
   const m = await grid(a)
   let min = Infinity, max = -Infinity
   for (const v of m) { if (v < min) min = v; if (v > max) max = v }
-  let levels = a.levels
-  if (!levels) {
-    levels = []
-    for (let l = Math.ceil(Math.max(min, 1) / a.step) * a.step; l < max; l += a.step) levels.push(l)
-  }
-  const c = contours().size([a.w, a.h]).thresholds(levels)(Array.from(m))
+  const c = contours().size([a.w, a.h]).thresholds(a.levels)(Array.from(m))
   const sheets = c.map((multi) => ({ level: multi.value, polys: toPolys(multi, a, a.tolerance, a.minArea, a.digits, a.smooth) }))
     .filter((s) => s.polys.length)
   const out = { name: a.name, west: a.west, east: a.east, south: a.south, north: a.north, q: 10 ** -a.digits, min: Math.round(min), max: Math.round(max), levels: sheets.map((s) => s.level), sheets }
   if (a.lakeSeed) {
     const { mask, h0 } = lakeMask(m, a)
     const [lake] = contours().size([a.w, a.h]).thresholds([0.5])(Array.from(mask))
-    out.lake = { level: Math.round(h0), polys: toPolys(lake, a, a.tolerance, a.minArea, a.digits, a.smooth) }
+    out.lakes = { level: Math.round(h0), polys: toPolys(lake, a, a.tolerance, a.minArea, a.digits, a.smooth) }
   }
   writeFileSync(join(OUT, `${a.name}.json`), JSON.stringify(out))
   const points = sheets.reduce((n, s) => n + s.polys.reduce((k, p) => k + p.reduce((q, r) => q + r.length / 2, 0), 0), 0)
-  return { name: a.name, min: out.min, max: out.max, sheets: sheets.length, points, lake: out.lake?.level }
-}
-
-// ---------------------------------------------------------------------------------------------------
-// The hero terraces: a procedural mountainside cut into many thin contour steps, the way Ifugao
-// terraces follow the land, with forest (muyong) left standing on the crown. Not a survey of any one
-// place; a deterministic model in a unit square.
-function heroTerraces() {
-  const N = 256
-  let seed = 11
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  const lattice = Array.from({ length: 17 * 17 }, rnd)
-  const noise = (x, y) => {
-    const gx = x * 16, gy = y * 16, i = Math.floor(gx), j = Math.floor(gy), fx = gx - i, fy = gy - j
-    const s = (t) => t * t * (3 - 2 * t)
-    const v = (a, b) => lattice[(Math.min(16, b)) * 17 + Math.min(16, a)]
-    const top = v(i, j) + (v(i + 1, j) - v(i, j)) * s(fx)
-    const bot = v(i, j + 1) + (v(i + 1, j + 1) - v(i, j + 1)) * s(fx)
-    return top + (bot - top) * s(fy)
-  }
-  const field = new Float64Array(N * N)
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const x = i / (N - 1), y = j / (N - 1)
-    // a long ridge running across the square, a summit off-centre, and a valley folding into it
-    const ridge = Math.exp(-(((y - 0.42 - 0.08 * Math.sin(x * 4)) ** 2) / 0.05))
-    const summit = Math.exp(-(((x - 0.58) ** 2) / 0.05 + ((y - 0.4) ** 2) / 0.04))
-    const valley = Math.exp(-(((x - 0.3) ** 2) / 0.004 + ((y - 0.72) ** 2) / 0.08)) * 0.35
-    const edge = Math.min(1, Math.min(x, 1 - x, y, 1 - y) * 6)
-    field[j * N + i] = (0.55 * ridge + 0.55 * summit - valley + 0.12 * (noise(x, y) - 0.5)) * edge
-  }
-  const levels = Array.from({ length: 30 }, (_, k) => 0.04 + k * 0.03)
-  const box = { west: 0, east: 1, south: 0, north: 1, w: N, h: N }
-  const sheets = contours().size([N, N]).thresholds(levels)(Array.from(field))
-    .map((multi) => ({ level: Math.round(multi.value * 1000) / 1000, polys: toPolys(multi, box, 0.6, 3, 4, 2) }))
-    .filter((s) => s.polys.length)
-  // forest crown: trees stand where the land is above the last terraces
-  const trees = []
-  for (let k = 0; k < 20000 && trees.length < 270; k++) {
-    const x = rnd(), y = rnd(), v = field[Math.floor((1 - y) * (N - 1)) * N + Math.floor(x * (N - 1))]
-    if (v > 0.8) trees.push(Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4, Math.round(v * 1e3) / 1e3)
-  }
-  const out = { name: 'terraces', west: 0, south: 0, q: 1e-4, levels: sheets.map((s) => s.level), sheets, trees }
-  writeFileSync(join(OUT, 'terraces.json'), JSON.stringify(out))
-  return { name: 'terraces', sheets: sheets.length, trees: trees.length / 3 }
+  const lakeArea = out.lakes?.polys.reduce((k, p) => k + Math.abs(ringArea(pairs(p[0]))) * (a.digits ? 10 ** (-2 * a.digits) : 1), 0)
+  return { name: a.name, min: out.min, max: out.max, sheets: sheets.length, points, lake: out.lakes?.level, lakeKm2: lakeArea && Math.round(lakeArea * 12300) }
 }
 
 mkdirSync(CACHE, { recursive: true })
 mkdirSync(OUT, { recursive: true })
-for (const a of AREAS) console.log(await bakeArea(a))
-console.log(heroTerraces())
+console.log(await bakeArea(MAP))
 writeFileSync(join(OUT, 'SOURCES.txt'), [
   'Elevation: Terrain Tiles on AWS Open Data (Terrarium encoding), built from SRTM, GMTED2010, ETOPO1 and other open sources.',
   'https://registry.opendata.aws/terrain-tiles/',
-  'Contours: d3-contour. terraces.json is a procedural model, not a survey of any place.',
+  'Contours: d3-contour.',
   '',
 ].join('\n'))

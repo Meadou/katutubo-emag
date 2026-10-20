@@ -5,6 +5,7 @@ import { ISLAND_GROUP, type IslandGroup } from '../content'
 import { ISLANDS } from '../geo/archipelago'
 import { journey } from '../worlds/engine'
 import { REGIONS } from '../worlds/journeys'
+import { MAP_VIEW } from './Pins'
 import { useUi } from '../ui/store'
 
 // unseen: the island groups are felt by the pointer, not drawn
@@ -32,7 +33,7 @@ export default function MapHotspots() {
   const shapes = useMemo(() => REGIONS.map((r) => [r, groupShape(r)] as const), [])
   // like the pins, they belong to the map views: put away when the camera comes down to a place
   useFrame(() => {
-    const on = (journey.current?.camera.dist ?? 0) > 2.2
+    const on = (journey.current?.camera.dist ?? 0) > MAP_VIEW
     group.current.visible = on
     if (!on && useUi.getState().hoveredRegion) setRegion(null)
   })

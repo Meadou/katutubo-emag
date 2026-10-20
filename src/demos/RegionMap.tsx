@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLand } from '../worlds/land'
+import { useMap } from '../worlds/land'
 import { pathsFor } from '../static/paths'
-import { AREAS, type AreaName } from '../worlds/types'
+import { MAP } from '../worlds/types'
 import { journey } from '../worlds/engine'
 import { strings } from '../i18n/t'
 
 type Box = [number, number, number, number]
 
+/** The square of land marked around a people's place: about what the camera sees when it comes down there. */
+const AROUND = 0.35
+
 /**
- * Overview demo: the paper archipelago with the people's region cut out and lit. One tap zooms the
- * little map into the region and back, so the reader sees where the journey has come down.
+ * Overview demo: the paper archipelago with the people's land marked and lit. One tap zooms the
+ * little map into it and back, so the reader sees where the journey has come down.
  */
-export default function RegionMap({ lon, lat, area }: { lon: number; lat: number; area: AreaName }) {
-  const land = useLand('archipelago')
+export default function RegionMap({ lon, lat }: { lon: number; lat: number }) {
+  const land = useMap()
   const paths = useMemo(() => (land ? pathsFor(land) : null), [land])
-  const A = AREAS.archipelago, R = AREAS[area]
+  const A = MAP, R = { west: lon - AROUND, east: lon + AROUND, south: lat - AROUND, north: lat + AROUND }
   const whole: Box = [0.2, 0.2, A.east - A.west - 0.4, A.north - A.south - 0.4]
   const rw = R.east - R.west, rh = R.north - R.south
   const near: Box = [R.west - A.west - rw * 1.6, A.north - R.north - rh * 1.6, rw * 4.2, rh * 4.2]

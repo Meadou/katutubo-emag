@@ -35,16 +35,16 @@ button { font: inherit; color: inherit; }
   border-radius: 3px;
   box-shadow: var(--shadow-card);
 }
-/* a second sheet in the world's accent, peeking from behind like stacked paper */
+/* a second sheet in the people's colour (or the site's accent), peeking from behind like stacked paper */
 .card::before {
   content: '';
   position: absolute;
   inset: 8px -7px -9px 7px;
   z-index: -1;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--accent) 78%, var(--paper));
+  background: color-mix(in srgb, var(--c, var(--accent)) 78%, var(--paper));
   transform: rotate(0.9deg);
-  box-shadow: 0 20px 34px -24px rgba(0, 0, 0, 0.5);
+  /* no blur of its own: the card's shadow already lifts the pair, and a second blur on tall cards is costly to scroll */
   transition: background-color 0.6s ease;
 }
 .card__over { font: 600 14px/1.4 var(--text); color: var(--ink-soft); }
@@ -86,6 +86,20 @@ button { font: inherit; color: inherit; }
 /* ---------- text arriving strip by strip ---------- */
 .strip { opacity: 0; transform: translateY(16px); transition: opacity 0.7s ease, transform 0.9s var(--ease-out); transition-delay: calc(var(--i, 0) * 90ms); }
 .strip.is-in { opacity: 1; transform: none; }
+
+/* ---------- the loading screen ---------- */
+html.is-loading { overflow: hidden; }
+.loader {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--gutter);
+  background: radial-gradient(circle at 50% 40%, #2f6f8c, #1d4c69 70%);
+  transition: opacity 0.6s ease;
+}
+.loader.is-done { opacity: 0; pointer-events: none; }
+.loader__card { width: min(100%, 26rem); }
+.loader__name { margin-top: 8px; font: 400 clamp(48px, 6vw, 80px)/0.9 var(--display); letter-spacing: -0.01em; }
+.loader__bar { margin-top: 24px; height: 4px; overflow: hidden; border-radius: 2px; background: var(--line); }
+.loader__bar i { display: block; height: 100%; background: var(--ink); transform-origin: left; transition: transform 0.3s var(--ease-out); }
+.loader__note { margin-top: 10px; font: 600 14px/1.4 var(--text); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
 /* calm: no WebGL, or reduced motion. Everything is there at once, nothing moves. */
 html.calm .strip { opacity: 1; transform: none; transition: none; }

@@ -1,5 +1,5 @@
-/* Paper islands: tokens. Text always sits on cream paper in ink (about 15:1); the world's accent and
-   sky are written here by the scroll-world engine as the reader moves between worlds. */
+/* Paper islands: tokens. Text always sits on cream paper in ink (about 15:1). The scroll-world engine
+   paints the sky on its own element (these are its first colours); cards take their people's colour. */
 :root {
   --paper: #f6efe2;
   --paper-deep: #ece2cf;

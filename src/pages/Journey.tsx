@@ -142,7 +142,7 @@ function Chapter({ g, index }: { g: Group; index: number }) {
   return (
     <section id={id} data-world={id} className={`sec sec--chapter ${index % 2 ? 'is-flipped' : ''}`} style={{ ['--c' as string]: g.color }}>
       <ChapterCard chapter={c} index={index} people={g.name} id={id} />
-      {spec && design && <div className="demo-slot"><Demo spec={spec} chapter={c} group={g} area={design.area} sectionId={id} /></div>}
+      {spec && <div className="demo-slot"><Demo spec={spec} chapter={c} group={g} sectionId={id} /></div>}
     </section>
   )
 }

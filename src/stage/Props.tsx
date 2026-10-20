@@ -3,11 +3,14 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { journey } from '../worlds/engine'
 import { OBJECTS } from './props/registry'
-import { groundUnder } from './place'
+import { groundHeight } from './place'
 import { toX, toZ } from './paper'
 
+/** Objects belong to a people's chapters: they stand only when the camera has come down to them. */
+const NEAR = 3.4
+
 /**
- * A chapter's object rises from the land like a pop-up page as its world arrives, and folds back down
+ * A chapter's object rises from the map like a pop-up page as its world arrives, and folds back down
  * when the reader moves on. Once standing, nothing about it moves.
  */
 function Prop({ id }: { id: string }) {
@@ -16,12 +19,11 @@ function Prop({ id }: { id: string }) {
   const Comp = OBJECTS[id]
   useFrame(() => {
     const w = journey.current, site = w?.site
-    if (!w || !site) { if (root.current) root.current.visible = false; return }
-    // an object stands only on its place's finer paper, never on the coarse map
-    const weight = (w.propWeights[id] ?? 0) * (w.area === 'archipelago' ? 0 : w.areaWeights[w.area] ?? 0)
+    if (!w || !site || w.camera.dist > NEAR) { if (root.current) root.current.visible = false; return }
+    const weight = w.propWeights[id] ?? 0
     root.current.visible = weight > 0.01
     if (!root.current.visible) return
-    root.current.position.set(toX(site.lon), groundUnder(w, site.lon, site.lat), toZ(site.lat))
+    root.current.position.set(toX(site.lon), groundHeight(site.lon, site.lat), toZ(site.lat))
     // folded flat at 0, standing at 1 (eased by the world's own damping)
     hinge.current.rotation.x = -Math.PI / 2 * (1 - THREE.MathUtils.smoothstep(weight, 0.15, 0.95))
   })

@@ -1,18 +1,45 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="is-loading">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#8fc1dc" />
+    <meta name="theme-color" content="#1d4c69" />
     <meta name="description" content="Katutubo — an interactive e-magazine celebrating the Indigenous Peoples of the Philippines." />
     <title>Katutubo — Indigenous Peoples of the Philippines</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='none' stroke='%231d1b17' stroke-width='10'/><circle cx='50' cy='50' r='12' fill='%23e2a33a'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Young+Serif&display=swap" rel="stylesheet" />
+    <!-- the paper map downloads alongside the code, not after it -->
+    <link rel="preload" href="worlds/archipelago.json" as="fetch" crossorigin />
+    <style>
+      /* the loading screen, styled before any script or stylesheet arrives (src/ui/Loader.tsx takes it over) */
+      html.is-loading { overflow: hidden; }
+      body { margin: 0; }
+      .loader { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle at 50% 40%, #2f6f8c, #1d4c69 70%); font-family: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif; color: #1d1b17; }
+      .loader .card { width: min(100%, 26rem); box-sizing: border-box; padding: clamp(22px, 3vw, 38px); background: #f6efe2; border-radius: 3px; box-shadow: 0 28px 52px -30px rgba(12, 10, 26, 0.62); }
+      .loader .card__over { margin: 0; font-weight: 600; font-size: 14px; line-height: 1.4; color: #4a443b; }
+      .loader__name { margin: 8px 0 0; font: 400 clamp(48px, 6vw, 80px)/0.9 'Young Serif', Georgia, serif; }
+      .loader .masthead { margin: 10px 0 0; font: 400 clamp(20px, 1.9vw, 26px)/1.2 'Young Serif', Georgia, serif; color: #4a443b; }
+      .loader__bar { margin-top: 24px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(29, 27, 23, 0.18); }
+      .loader__bar i { display: block; height: 100%; background: #1d1b17; transform-origin: left; }
+      .loader__note { margin: 10px 0 0; font-weight: 600; font-size: 14px; line-height: 1.4; color: #4a443b; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- shown at once, before the script runs; React renders the same loader in its place -->
+      <div class="loader">
+        <div class="card loader__card" role="status">
+          <p class="card__over">Issue 01 · An e-magazine</p>
+          <p class="loader__name">Katutubo</p>
+          <p class="masthead">the first peoples of the islands</p>
+          <div class="loader__bar" aria-hidden="true"><i style="transform: scaleX(0.05)"></i></div>
+          <p class="loader__note">Laying out the paper…</p>
+        </div>
+      </div>
+    </div>
+    <noscript>Katutubo needs JavaScript to show its journey.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -49,11 +49,18 @@ function measure() {
   journey.dirty = false
 }
 
-function setCssVars(w: Blended) {
-  const s = document.documentElement.style
-  s.setProperty('--sky-top', w.sky[0])
-  s.setProperty('--sky-bottom', w.sky[1])
-  s.setProperty('--accent', w.accent)
+let skyEl: HTMLElement | null = null
+let lastSky = ''
+
+/**
+ * The sky is painted straight onto its own element, and only when it changes. Nothing is written to
+ * <html>: a custom property there re-styles the whole page (every chapter's text) each time it changes.
+ */
+function paint(w: Blended) {
+  const sky = `linear-gradient(${w.sky[0]}, ${w.sky[1]})`
+  if (sky === lastSky) return
+  if (!skyEl || !skyEl.isConnected) skyEl = document.querySelector<HTMLElement>('.sky')
+  if (skyEl) { skyEl.style.background = sky; lastSky = sky }
 }
 
 let started = false
@@ -86,7 +93,7 @@ function frame(now: number) {
     journey.nearest = near
     nearestListeners.forEach((l) => l())
   }
-  setCssVars(journey.current)
+  paint(journey.current)
   frameListeners.forEach((cb) => cb(dt))
 }
 

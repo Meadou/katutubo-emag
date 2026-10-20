@@ -40,7 +40,7 @@ const at = (focus: { lon: number; lat: number }, s: Shot): Camera => ({
 
 /** Quiet map worlds for the index and about pages. */
 export const plainWorlds = (aspect: number, time: TimeName = 'midday'): Record<string, WorldState> => ({
-  page: world(time, { area: 'archipelago', still: true, props: [], camera: { ...archipelagoCamera(aspect), dist: fitDist(11, 16.6, aspect) * 1.12, tilt: 0.42 } }),
+  page: world(time, { still: true, props: [], camera: { ...archipelagoCamera(aspect), dist: fitDist(11, 16.6, aspect) * 1.12, tilt: 0.42 } }),
 })
 
 export const REGIONS: IslandGroup[] = ['Luzon', 'Visayas', 'Mindanao']
@@ -73,7 +73,7 @@ export const chapterId = (slug: string, chapter: string) => `ch-${slug}-${chapte
 export function buildJourney(aspect: number, groups: Group[] = allGroups): { sections: Section[]; worlds: Record<string, WorldState> } {
   const sections: Section[] = []
   const worlds: Record<string, WorldState> = {}
-  const map = { area: 'archipelago' as const, still: false, props: [] as string[] }
+  const map = { still: false, props: [] as string[] }
   const zoom = (id: string, from: string, to: string) => {
     sections.push({ kind: 'zoom', id })
     worlds[id] = { ...worlds[from], travel: { from, to } }
@@ -95,10 +95,9 @@ export function buildJourney(aspect: number, groups: Group[] = allGroups): { sec
     peoples.forEach((g, i) => {
       const d = DESIGNS[g.slug]
       const site = d?.focus ?? { lon: g.lon, lat: g.lat }
-      const area = d?.area ?? 'archipelago'
       const stop = stopId(g.slug)
-      const own = { area, site, people: g.slug, pin: g } as const
-      const stopShot = d?.shots.stop ?? { dist: 0.8, tilt: 0.8, yaw: 0 }
+      const own = { site, people: g.slug, pin: g }
+      const stopShot = d?.shots.stop ?? { dist: 2.6, tilt: 0.78, yaw: 0 }
       worlds[stop] = world(g.placeholder ? 'day' : 'morning', {
         ...own, still: false, props: g.placeholder ? [] : [g.chapters[0]?.object].filter(Boolean) as string[], camera: at(site, stopShot),
       })

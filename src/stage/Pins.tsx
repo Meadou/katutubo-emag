@@ -4,8 +4,6 @@ import * as THREE from 'three'
 import { groups, type Group } from '../content'
 import { goToSection, journey } from '../worlds/engine'
 import { stopId } from '../worlds/journeys'
-import { DESIGNS } from '../worlds/issues'
-import { loadLand } from '../worlds/land'
 import { useUi } from '../ui/store'
 import { groundHeight } from './place'
 import { heightOf, toX, toZ } from './paper'
@@ -26,6 +24,9 @@ const unseen = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, dept
 
 const pointer = (on: boolean) => { document.body.style.cursor = on ? 'pointer' : '' }
 
+/** Farther out than this, the camera is on a map view (the cover, an island group) and the pins stand. */
+export const MAP_VIEW = 3.2
+
 /**
  * A paper flag on a pin at each people's place on the map views; the marked or pointed-at place
  * stands taller. Pointing at a pin leans the opening view toward that people; choosing it goes
@@ -41,9 +42,9 @@ function Pin({ g }: { g: Group }) {
     const w = journey.current
     if (!w) return
     const on = (w.pin && Math.abs(w.pin.lon - g.lon) < 1e-6 && Math.abs(w.pin.lat - g.lat) < 1e-6) || useUi.getState().hovered === g.slug
-    // pins belong to the map: they fold away as the camera comes down to a place
-    const showing = w.camera.dist > 2.2 ? 1 : 0
-    ref.current.position.y = groundHeight('archipelago', g.lon, g.lat) ?? heightOf(1)
+    // pins belong to the map views: they fold away as the camera comes down to a people
+    const showing = w.camera.dist > MAP_VIEW ? 1 : 0
+    ref.current.position.y = Math.max(groundHeight(g.lon, g.lat), heightOf(1))
     const d = camera.position.distanceTo(ref.current.position)
     const target = showing * d * (on ? 0.05 : 0.034)
     const s = THREE.MathUtils.damp(ref.current.scale.x, target, 8, dt)
@@ -56,9 +57,6 @@ function Pin({ g }: { g: Group }) {
     e.stopPropagation()
     setHovered(g.slug)
     pointer(true)
-    // have the place's finer paper on its way before the reader chooses it
-    const area = DESIGNS[g.slug]?.area
-    if (area && area !== 'archipelago') void loadLand(area).catch(() => {})
   }
   const out = () => {
     if (useUi.getState().hovered === g.slug) setHovered(null)
