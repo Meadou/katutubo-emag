@@ -54,7 +54,7 @@ function parseFrontmatter(raw: string): { meta: Record<string, string>; body: st
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
-function parseGroup(raw: string): Group {
+export function parseGroup(raw: string): Group {
   const { meta, body } = parseFrontmatter(raw)
   const objects = (meta.objects ?? 'spirits').split(',').map((s) => s.trim()).filter(Boolean)
   const parts = body.split(/^## +/m).slice(1)
