@@ -82,3 +82,11 @@ describe('sceneObjectKeys', () => {
     expect(sceneObjectKeys(make('p', true))).toEqual(['spirits'])
   })
 })
+
+describe('coordinates', () => {
+  it('leaves missing lat/lon as NaN so content lint rejects them', () => {
+    const g = parseGroup('---\nname: Lost\nisland: Panay\n---\n')
+    expect(Number.isNaN(g.lat)).toBe(true)
+    expect(Number.isNaN(g.lon)).toBe(true)
+  })
+})

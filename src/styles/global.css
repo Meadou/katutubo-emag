@@ -221,11 +221,10 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 500; line-height: 1.05; mar
   html { scroll-behavior: auto; }
 }
 
-/* "Coming soon" placeholder issues */
-.card--soon { opacity: 0.6; }
-.card--soon:hover, .card--soon:focus-visible { opacity: 1; }
+/* "Coming soon" placeholder issues: muted by colour (not opacity) so small text keeps AA contrast */
+.card--soon { border-style: dashed; }
+.card--soon .card__no { color: var(--muted); }
 .card__soon, .cover__soon { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .card__soon { margin-top: 6px; }
-.cover__list .cover__soon { color: var(--muted); opacity: 0.6; }
 .article__soon { max-width: 46ch; color: var(--muted); font: italic 18px/1.6 var(--serif); }
 .article--soon .next { margin-top: 0; }
