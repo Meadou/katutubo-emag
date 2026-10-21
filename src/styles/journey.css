@@ -52,6 +52,11 @@
   gap: 6vh 2vw; min-height: 200svh; padding-top: 18vh; padding-bottom: 30vh;
 }
 .sec--chapter .chapter-card { grid-column: 1; }
+/* the recede wrapper holds the card's grid cell, so the card moves without touching the layout */
+.sec--chapter .recede { grid-column: 1; }
+.sec--chapter.is-flipped .recede { grid-column: 3; }
+.recede { transition: opacity 0.5s ease, transform 0.6s var(--ease-out); will-change: opacity, transform; }
+@media (prefers-reduced-motion: reduce) { .recede { transition: none; } }
 .sec--chapter .demo-slot { grid-column: 3; grid-row: 1; }
 .sec--chapter.is-flipped .chapter-card { grid-column: 3; }
 .sec--chapter.is-flipped .demo-slot { grid-column: 1; }
@@ -126,6 +131,7 @@
   .sec--chapter { grid-template-columns: 1fr; min-height: auto; padding-top: 34vh; padding-bottom: 40vh; gap: 28px; }
   .sec--chapter .chapter-card, .sec--chapter .demo-slot,
   .sec--chapter.is-flipped .chapter-card, .sec--chapter.is-flipped .demo-slot { grid-column: 1; grid-row: auto; }
+  .sec--chapter .recede, .sec--chapter.is-flipped .recede { grid-column: 1; grid-row: auto; }
   .demo-slot { position: static; }
   .rail { left: var(--gutter); right: var(--gutter); transform: none; align-items: stretch; bottom: 10px; }
   /* the top tab has to fit a phone: tighter links, and the sound switch shows its state by its dot */

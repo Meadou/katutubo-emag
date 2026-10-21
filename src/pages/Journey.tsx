@@ -6,6 +6,7 @@ import { REGIONS, REGION_VIEW, archipelagoCamera, buildJourney, chapterId, secti
 import { DESIGNS } from '../worlds/issues'
 import { useAspect } from '../worlds/useAspect'
 import { ChapterCard } from '../ui/ChapterCard'
+import Recede from '../ui/Recede'
 import JourneyRail from '../ui/JourneyRail'
 import ScrollCue from '../ui/ScrollCue'
 import { useUi } from '../ui/store'
@@ -77,7 +78,7 @@ function Intro({ aspect }: { aspect: number }) {
 
   return (
     <div id="intro" data-world="intro" className="sec sec--intro">
-      <header className="card card--masthead">
+      <header className="card card--ink card--masthead">
         <p className="card__over">{s.over}</p>
         <h1>{strings.site.name}</h1>
         <p className="masthead">{strings.site.masthead}</p>
@@ -95,7 +96,7 @@ function Intro({ aspect }: { aspect: number }) {
 function Region({ s }: { s: Extract<Section, { kind: 'region' }> }) {
   return (
     <section id={s.id} data-world={s.id} className="sec sec--region" aria-labelledby={`h-${s.id}`}>
-      <div className="card card--region">
+      <div className="card card--ink card--region">
         <p className="card__over">{s.region}</p>
         <h2 id={`h-${s.id}`}>{strings.regions[s.region]}</h2>
         <p className="region__peoples">{s.peoples.map((g) => g.name).join(' · ')}</p>
@@ -111,7 +112,7 @@ function People({ g }: { g: Group }) {
   return (
     <section id={id} data-world={id} className={`sec sec--people ${g.placeholder ? 'is-soon' : ''}`} aria-labelledby={`h-${id}`} style={{ ['--c' as string]: g.color }}>
       <p className="zoom-caption" aria-hidden="true">{g.name} · {g.region}</p>
-      <div className="card card--people">
+      <div className="card card--ink card--people">
         <p className="card__over">{g.region} · <span className="nums">{coords(g)}</span></p>
         <h2 id={`h-${id}`}>{g.name}</h2>
         {g.aka && <p className="people__aka">{fill(s.aka, { aka: g.aka })}</p>}
@@ -141,7 +142,7 @@ function Chapter({ g, index }: { g: Group; index: number }) {
   const spec = design?.demos[c.id]
   return (
     <section id={id} data-world={id} className={`sec sec--chapter ${index % 2 ? 'is-flipped' : ''}`} style={{ ['--c' as string]: g.color }}>
-      <ChapterCard chapter={c} index={index} people={g.name} id={id} />
+      <Recede sectionId={id}><ChapterCard chapter={c} index={index} people={g.name} id={id} /></Recede>
       {spec && <div className="demo-slot"><Demo spec={spec} chapter={c} group={g} sectionId={id} /></div>}
     </section>
   )
@@ -151,7 +152,7 @@ function Sources({ g }: { g: Group }) {
   const id = `sources-${g.slug}`
   return (
     <section id={id} data-world={id} className="sec sec--sources" aria-labelledby={`h-${id}`}>
-      <div className="card card--sources">
+      <div className="wash card--sources">
         <p className="card__over">{g.name}</p>
         <h2 id={`h-${id}`}>{strings.journey.sources}</h2>
         <div className="prose prose--sources" dangerouslySetInnerHTML={{ __html: g.sources ?? '' }} />
@@ -165,7 +166,7 @@ function End() {
   const soon = groups.filter((g) => g.placeholder).length
   return (
     <section id="end" data-world="end" className="sec sec--end" aria-labelledby="h-end">
-      <div className="card card--end">
+      <div className="card card--ink card--end">
         <h2 id="h-end">{s.endTitle}</h2>
         <p className="lede">{fill(s.endBody, { ready: groups.length - soon, soon })}</p>
         <div className="end__links">

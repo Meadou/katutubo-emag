@@ -27,16 +27,24 @@ button { font: inherit; color: inherit; }
 .pages { position: relative; z-index: 2; }
 
 /* ---------- paper ---------- */
-.card {
+/* ---------- three reading containers, three jobs ----------
+   .card (default): a slip of paper. Every call site keeps working; the journey opts into bare ink.
+   .card--ink: type directly on the world over a local scrim. The words are the surface.
+   .wash: the demo beside a chapter, and dense prose, where the world shows through. */
+.card, .slip, .wash {
   position: relative;
-  background: var(--paper) var(--grain);
   color: var(--ink);
   padding: clamp(22px, 3vw, 38px);
+}
+
+/* a slip of paper, laid on the world */
+.card, .slip {
+  background: var(--paper) var(--grain);
   border-radius: 3px;
   box-shadow: var(--shadow-card);
 }
 /* a second sheet in the people's colour (or the site's accent), peeking from behind like stacked paper */
-.card::before {
+.card::before, .slip::before {
   content: '';
   position: absolute;
   inset: 8px -7px -9px 7px;
@@ -47,8 +55,35 @@ button { font: inherit; color: inherit; }
   /* no blur of its own: the card's shadow already lifts the pair, and a second blur on tall cards is costly to scroll */
   transition: background-color 0.6s ease;
 }
+/* a wash: the world stays faintly visible under the page, so nothing is sealed off */
+.wash {
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(2px);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgba(29, 27, 23, 0.06), 0 22px 44px -32px rgba(12, 10, 26, 0.5);
+}
+
+/* bare ink: no sheet, no rotated second sheet; a scrim behind the text block instead */
+.card--ink {
+  background: var(--scrim-land);
+  box-shadow: none;
+}
+.card--ink::before { display: none; }
+/* the cover card sits over the open sea and sky, which is darker than land */
+.card--ink.card--masthead { background: var(--scrim-sky); }
 .card__over { font: 600 14px/1.4 var(--text); color: var(--ink-soft); }
 .card__under { margin-top: 10px; font-size: 15px; color: var(--ink-soft); }
+
+/* a slip used as an inline tag (the chapter number and people) rather than a panel */
+.slip.chapter-card__no {
+  display: inline-block;
+  width: max-content;
+  padding: 5px 11px;
+  box-shadow: 0 1px 0 rgba(29, 27, 23, 0.1), 0 10px 18px -12px rgba(12, 10, 26, 0.5);
+}
+/* no rotated sheet behind a small tag: it would read as a second slip */
+.slip.chapter-card__no::before { display: none; }
+
 .lede { margin-top: 18px; font: 500 clamp(19px, 1.6vw, 22px)/1.45 var(--text); color: var(--ink); max-width: 40ch; }
 .lede--small { font-size: 17px; color: var(--ink-soft); }
 

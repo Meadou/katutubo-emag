@@ -10,6 +10,10 @@
   --accent: #e2a33a;
   --sky-top: #8fc1dc;
   --sky-bottom: #e6efe6;
+  /* Bare ink sits on the world, not on paper. These are the only two grounds ink may cross:
+     a scrim over land, and a scrim over sky. Both are tuned so --ink stays >= 4.5:1 (see styles.test.ts). */
+  --scrim-land: rgba(246, 239, 226, 0.86);
+  --scrim-sky: rgba(246, 239, 226, 0.78);
   --display: 'Young Serif', Georgia, 'Times New Roman', serif;
   --text: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
   --gutter: clamp(16px, 4vw, 56px);
