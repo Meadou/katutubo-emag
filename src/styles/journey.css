@@ -1,110 +1,132 @@
-/* ---------- sections: each holds one world while its text moves over it ---------- */
-.sec { position: relative; min-height: 100svh; padding: 16vh var(--gutter); display: flex; align-items: center; }
-.sec--plain { align-items: flex-start; padding-top: 14vh; }
-/* the zooms carry no text: the camera moves while the page scrolls */
-.sec--zoom { display: block; min-height: 95svh; padding: 0; }
-/* the journey rail sits along the bottom from the first screen: the opening card clears it */
-.sec--intro { padding-top: 12vh; padding-bottom: max(10vh, 96px); }
-.sec--region { min-height: 120svh; align-items: flex-end; padding-bottom: 18vh; }
-.sec--people { min-height: 150svh; align-items: flex-end; padding-bottom: 20vh; }
-.sec--sources { min-height: 120svh; }
+/* ---------- sections give the journey its length; frames hold their words still ----------
+   Each section is a stretch of scroll that moves the camera. Its words sit in a frame fixed over
+   the map, which fades in place as the section begins and fades away as the journey goes on. */
+.sec { position: relative; min-height: 100svh; }
+.sec--plain { display: flex; align-items: flex-start; padding: 14vh var(--gutter); }
+.sec--intro { min-height: 110svh; }
+.sec--zoom { min-height: 95svh; }
+.sec--region { min-height: 130svh; }
+.sec--people { min-height: 150svh; }
+/* a chapter gets a stretch per paragraph, so each one has time to be read */
+.sec--chapter { min-height: calc((var(--steps, 3) + 1.4) * 55svh); }
+.sec--sources { min-height: 130svh; }
 .sec--end { min-height: 110svh; }
 
-/* the land is the subject: cards keep to the edges and stay narrow, so the centre belongs to the 3D */
-.card--region, .card--people, .card--sources, .card--end { width: min(100%, 24rem); }
-
-/* the map behind the page takes the pointer (pins, island groups) wherever there is no paper on top */
+/* the map takes the pointer (pins, island groups, the gongs) wherever no words sit on top */
 .pages, .journey, .journey .sec { pointer-events: none; }
-.card, .demo-slot, .rail { pointer-events: auto; }
+.card, .sec--plain .card { pointer-events: auto; }
 
-/* ---------- the opening ---------- */
-/* narrow enough that every people's pin stays clear of it on a laptop screen */
-.card--masthead { width: min(100%, 32rem); }
-.card--masthead h1 { margin-top: 8px; font-size: clamp(54px, 6.6vw, 100px); line-height: 0.9; }
-.masthead { margin-top: 10px; font: 400 clamp(20px, 1.9vw, 26px)/1.2 var(--display); color: var(--ink-soft); }
-.btn--quiet { color: var(--ink); background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
-.sound-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; }
-.is-on > .sound-dot { background: var(--accent); border-color: var(--ink); }
-.begin { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; }
-.begin .cue { margin-top: 0; padding-bottom: 6px; }
-
-/* ---------- an island group, and a people's stop ---------- */
-.card--region h2 { margin-top: 6px; font-size: clamp(28px, 2.6vw, 38px); line-height: 1.02; }
-.region__peoples { margin-top: 14px; font: 600 15px/1.5 var(--text); color: var(--ink-soft); }
-.card--people { border-top: 4px solid var(--c); }
-.card--people h2 { margin-top: 6px; font-size: clamp(44px, 4.4vw, 68px); line-height: 0.92; }
-.people__aka { margin-top: 6px; font-size: 15px; color: var(--ink-soft); }
-.angle { margin-top: 16px; font: 400 clamp(21px, 1.8vw, 26px)/1.15 var(--display); }
-.angle span { display: block; margin-bottom: 4px; font: 700 12px/1.4 var(--text); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
-.card--people .soon-tag { margin-top: 18px; }
-.soon-body { margin-top: 10px; max-width: 38ch; font-size: 15px; color: var(--ink-soft); }
-.card--people .lede { margin-top: 14px; font-size: 18px; }
-.people__follow { margin-top: 16px; font: 600 14px/1.4 var(--text); color: var(--ink-soft); }
-.zoom-caption {
-  position: absolute; top: -8vh; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2 * var(--gutter));
-  padding: 7px 13px; background: var(--paper) var(--grain); border-radius: 3px; box-shadow: var(--shadow-card);
-  font: 600 14px/1.3 var(--text);
+.frame {
+  position: fixed; inset: 0; z-index: 3; display: flex;
+  padding: 96px var(--gutter) 48px;
+  pointer-events: none;
 }
+.frame .card { pointer-events: none; }
+.frame[data-hidden='false'] .frame__body, .frame[data-hidden='false'] .frame__aside,
+.frame[data-hidden='false'] .card { pointer-events: auto; }
 
-/* ---------- a chapter: text at one edge, its demo at the other, the land between ---------- */
-.sec--chapter {
-  display: grid; grid-template-columns: minmax(0, 23rem) minmax(0, 1fr) minmax(0, 21rem); align-items: start;
-  gap: 6vh 2vw; min-height: 200svh; padding-top: 18vh; padding-bottom: 30vh;
+/* the opening: one card at the left, over the open sea */
+.frame--intro { align-items: center; }
+.frame--intro .card { width: min(100%, 32rem); background: var(--scrim-sky); }
+.frame--intro h1 { margin-top: 8px; font-size: clamp(54px, 6.4vw, 96px); line-height: 0.92; }
+.begin { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-top: 24px; }
+
+/* a group, a stop, the sources, the end: a slim block low at the left; the land holds the centre */
+.frame--side { align-items: flex-end; }
+.frame--side .card { width: min(100%, 24rem); }
+.frame--side h2 { margin-top: 6px; font-size: clamp(34px, 3.4vw, 52px); line-height: 1; }
+.sec--people h2 { font-size: clamp(44px, 4.4vw, 68px); line-height: 0.92; }
+.sec--people .card { border-top: 3px solid var(--c, var(--accent)); }
+.status { margin-top: 14px; }
+
+/* a chapter: its words at one edge, the myths scene (if any) at the other, the land between */
+.frame--chapter {
+  display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr) minmax(0, 21rem);
+  align-items: start; column-gap: 2vw;
 }
-.sec--chapter .chapter-card { grid-column: 1; }
-/* the recede wrapper holds the card's grid cell, so the card moves without touching the layout */
-.sec--chapter .recede { grid-column: 1; }
-.sec--chapter.is-flipped .recede { grid-column: 3; }
-.recede { transition: opacity 0.5s ease, transform 0.6s var(--ease-out); will-change: opacity, transform; }
-@media (prefers-reduced-motion: reduce) { .recede { transition: none; } }
-.sec--chapter .demo-slot { grid-column: 3; grid-row: 1; }
-.sec--chapter.is-flipped .chapter-card { grid-column: 3; }
-.sec--chapter.is-flipped .demo-slot { grid-column: 1; }
-.demo-slot { position: sticky; top: 14vh; }
-
-.chapter-card__no { font: 600 14px/1 var(--text); color: var(--ink-soft); }
-.chapter-card__no span { font: 400 18px/1 var(--display); color: var(--ink); margin-right: 4px; }
-.chapter-card h2 { margin-top: 10px; font-size: clamp(34px, 3.2vw, 48px); }
-.chapter-card .lede { font-size: 18px; }
-.points { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; padding: 0; }
-.points li { padding: 3px 11px; border: 1px solid var(--line-strong); border-radius: 999px; font: 600 13px/1.5 var(--text); }
-.prose { margin-top: 20px; font-size: 16px; }
+.frame--chapter .frame__body { grid-column: 1; grid-row: 1; }
+.frame--chapter .frame__aside { grid-column: 3; grid-row: 1; }
+.frame--chapter.is-flipped .frame__body { grid-column: 3; }
+.frame--chapter.is-flipped .frame__aside { grid-column: 1; }
+.chapter-card h2 { margin-top: 8px; font-size: clamp(34px, 3.2vw, 48px); }
+.chapter-card { border-top: 3px solid var(--c, var(--accent)); }
+.terms-line { margin-top: 12px; font: 600 14px/1.5 var(--text); color: var(--ink-soft); }
+/* the body steps in place: every block sits in the same spot, and one shows at a time */
+.steps { display: grid; margin-top: 18px; }
+.step { grid-area: 1 / 1; }
+.step p, .step ul, .step blockquote { margin: 0; }
+.step ul { padding-left: 1.1em; }
+.step blockquote { padding-left: 16px; border-left: 1px solid var(--line); font-size: 18px; }
 .prose p { margin: 0 0 1em; }
-.prose strong { font-weight: 700; }
-.prose blockquote { margin: 1.3em 0; padding: 0 0 0 18px; border-left: 1px solid var(--line-strong); font: 400 21px/1.3 var(--display); }
-.prose blockquote p { margin: 0; }
-.prose ul { padding-left: 1.1em; }
-.prose--sources { font-size: 15px; color: var(--ink-soft); }
-.prose--sources li { margin-bottom: 6px; }
-.card--sources h2, .card--end h2 { margin-top: 6px; font-size: clamp(30px, 2.8vw, 42px); }
+.prose ul { margin: 12px 0 0; padding-left: 1.1em; }
+.prose li { margin-bottom: 6px; }
+.demo-card h3 { margin-bottom: 12px; }
+.demo-card__caption, .demo-card__note { margin-top: 12px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
 .end__links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 
-/* ---------- the journey rail: every stop along the bottom ---------- */
-.rail { position: fixed; z-index: 9; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: calc(100vw - 2 * var(--gutter)); }
-.rail ol { list-style: none; margin: 0; padding: 0; display: flex; }
-.rail__stops, .rail__chapters { padding: 4px; gap: 4px; border-radius: 3px; background: color-mix(in srgb, var(--paper) 80%, transparent); box-shadow: var(--shadow-card); }
-.rail__region { display: flex; align-items: center; gap: 2px; }
-.rail__region + .rail__region { padding-left: 6px; border-left: 1px solid var(--line); }
-.rail__group { padding: 0 6px 0 4px; font: 700 10px/1 var(--text); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
-.rail a {
-  display: block; padding: 7px 9px; border-radius: 2px; text-decoration: none; font: 600 13px/1 var(--text); color: var(--ink-soft); white-space: nowrap;
-  transition: color 0.2s ease, background-color 0.3s ease;
-}
-.rail a:hover { color: var(--ink); }
-.rail a.is-on { color: var(--ink); background: var(--paper); box-shadow: inset 0 -3px 0 var(--c, var(--accent)); }
-.rail__chapters a.is-on { box-shadow: inset 0 -3px 0 var(--accent); }
+/* calm (no WebGL, or reduced motion): the words sit in the page and scroll like ordinary text */
+html.calm .frame { position: relative; inset: auto; min-height: 100svh; padding: 14vh var(--gutter); }
+html.calm .steps { display: block; }
+html.calm .step { opacity: 1 !important; transform: none !important; margin-bottom: 1em; }
+html.calm .frame--chapter { min-height: auto; }
 
-/* ---------- nav: the sound switch ---------- */
-.nav__sound { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 0; border-radius: 2px; background: none; cursor: pointer; font: 600 14px/1 var(--text); color: var(--ink-soft); }
-.nav__sound:hover { color: var(--ink); }
-.nav__sound.is-on { color: var(--ink); background: var(--paper-deep); }
-/* what the sound is, said for a few seconds when it is turned on */
-.nav__note {
-  position: absolute; top: calc(100% + 8px); right: 0; max-width: min(22rem, calc(100vw - 2 * var(--gutter)));
-  padding: 7px 12px; background: var(--paper) var(--grain); border-radius: 3px; box-shadow: var(--shadow-card);
-  font: 600 13px/1.4 var(--text); color: var(--ink);
+/* ---------- the one control: the breadcrumb pill ---------- */
+.crumb { position: fixed; z-index: 20; top: 14px; left: var(--gutter); }
+.crumb__pill {
+  display: inline-flex; align-items: center; gap: 2px; padding: 4px;
+  border-radius: 999px; background: var(--paper); box-shadow: var(--shadow);
 }
-.nav__note:empty { display: none; }
+.crumb__home { padding: 8px 4px 8px 14px; font: 400 19px/1 var(--display); text-decoration: none; }
+.crumb__sep { color: var(--ink-soft); padding: 0 2px; }
+.crumb__here {
+  display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px 9px 4px; border: 0; border-radius: 999px;
+  background: none; cursor: pointer; font: 600 15px/1 var(--text); white-space: nowrap;
+}
+.crumb__caret { font-size: 11px; color: var(--ink-soft); }
+.crumb__sound {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border: 0; border-radius: 999px;
+  background: none; cursor: pointer; font: 600 13px/1 var(--text); color: var(--ink-soft);
+}
+.crumb__sound:hover, .crumb__here:hover { background: var(--paper-deep); }
+.crumb__sound.is-on { color: var(--ink); background: var(--paper-deep); }
+.sound-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; }
+.is-on > .sound-dot { background: var(--accent); border-color: var(--ink); }
+.crumb__menu {
+  position: absolute; top: calc(100% + 8px); left: 0; width: min(calc(100vw - 2 * var(--gutter)), 34rem);
+  padding: 18px 20px; border-radius: var(--r); background: var(--paper); box-shadow: var(--shadow);
+}
+.crumb__menu[hidden] { display: none; }
+.crumb__groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; }
+.crumb__title { margin-bottom: 4px; font: 600 13px/1.4 var(--text); color: var(--ink-soft); }
+.crumb__menu ul { list-style: none; margin: 0; padding: 0; }
+.crumb__menu a { display: block; padding: 6px 0 6px 10px; border-left: 2px solid transparent; font: 600 15px/1.3 var(--text); text-decoration: none; }
+.crumb__menu a:hover { border-left-color: var(--line); }
+.crumb__menu a[aria-current] { border-left-color: var(--c, var(--accent)); }
+.crumb__menu a.is-soon { color: var(--ink-soft); }
+.crumb__chapters, .crumb__more { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.crumb__more { display: flex; gap: 18px; }
+.crumb__more a { padding-left: 0; }
+.crumb__note {
+  position: absolute; top: calc(100% + 8px); left: 0; width: max-content; max-width: min(22rem, calc(100vw - 2 * var(--gutter)));
+  padding: 8px 14px; border-radius: 999px; background: var(--paper); box-shadow: var(--shadow);
+  font: 600 13px/1.4 var(--text);
+}
+.crumb__note:empty { display: none; }
+
+/* ---------- labels on the map, with thin leader lines ---------- */
+.labels { position: fixed; inset: 0; z-index: 4; pointer-events: none; animation: labels-in 0.6s ease both; }
+@keyframes labels-in { from { opacity: 0; } }
+.labels__lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.labels__lines line { stroke: var(--ink); stroke-width: 1; }
+.labels__lines circle { fill: var(--ink); }
+.label {
+  position: absolute; left: 0; top: 0; max-width: 17rem; padding: 7px 11px;
+  border-radius: var(--r); background: var(--scrim-land); pointer-events: auto;
+  font: 400 15px/1.35 var(--text);
+}
+.label a { text-decoration: none; }
+.label a:hover strong { text-decoration: underline; }
+.label--object { display: grid; gap: 8px; justify-items: start; max-width: 19rem; padding: 10px 13px; }
 
 /* ---------- index and about ---------- */
 .card--index, .card--about { width: min(100%, 52rem); margin: 0 auto; }
@@ -118,32 +140,51 @@
 .rows li { border-bottom: 1px solid var(--line); }
 .row { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr auto; gap: 4px 20px; align-items: baseline; padding: 16px 4px; text-decoration: none; }
 .row__name { font: 400 28px/1.1 var(--display); }
-.row__where { color: var(--ink-soft); font-size: 15px; }
-.row__coords { color: var(--ink-soft); font-size: 13px; }
-.row__tag, .row .soon-tag { grid-column: 2 / span 2; font-size: 15px; color: var(--ink-soft); }
+.row__where, .row__coords, .row__tag, .row__soon { color: var(--ink-soft); font-size: 15px; }
+.row__tag, .row__soon { grid-column: 2 / span 2; }
 .row:hover .row__name { text-decoration: underline; text-decoration-thickness: 2px; text-decoration-color: var(--c); }
 
-/* ---------- phones: cards stack, the land shows between them ---------- */
+/* ---------- phones: recomposed, not shrunk ----------
+   Heading and its one line at the top, the map in the middle, the pill at the bottom. */
 @media (max-width: 860px) {
-  .sec { padding: 12vh var(--gutter); }
-  .sec--intro { align-items: flex-end; padding-top: 40vh; padding-bottom: max(8vh, 84px); }
-  .sec--people, .sec--region { padding-bottom: 14vh; }
-  .sec--chapter { grid-template-columns: 1fr; min-height: auto; padding-top: 34vh; padding-bottom: 40vh; gap: 28px; }
-  .sec--chapter .chapter-card, .sec--chapter .demo-slot,
-  .sec--chapter.is-flipped .chapter-card, .sec--chapter.is-flipped .demo-slot { grid-column: 1; grid-row: auto; }
-  .sec--chapter .recede, .sec--chapter.is-flipped .recede { grid-column: 1; grid-row: auto; }
-  .demo-slot { position: static; }
-  .rail { left: var(--gutter); right: var(--gutter); transform: none; align-items: stretch; bottom: 10px; }
-  /* the top tab has to fit a phone: tighter links, and the sound switch shows its state by its dot */
-  .nav__links a, .nav__sound { padding: 6px 7px; font-size: 13px; }
-  .nav__sound-state { display: none; }
-  .rail ol { overflow-x: auto; scrollbar-width: none; }
-  .rail__group { display: none; }
+  .frame { flex-direction: column; justify-content: flex-start; align-items: stretch; padding: 16px var(--gutter) 88px; }
+  .frame--intro .card, .frame--side .card { width: 100%; }
+  .frame--intro { justify-content: flex-start; }
+  /* a chapter splits: its head at the top, the land and its object in the middle, the paragraph being read above the pill */
+  .frame--chapter { display: flex; flex-direction: column; gap: 10px; }
+  .frame--chapter .frame__body, .frame--chapter .chapter-card { display: contents; }
+  html:not(.calm) .chapter-card__head, html:not(.calm) .chapter-card__body .step { padding: 14px 16px; border-radius: var(--r); background: var(--scrim-land); }
+  .chapter-card__head { order: 1; }
+  html:not(.calm) .chapter-card__head { border-top: 3px solid var(--c, var(--accent)); }
+  .chapter-card__head h2 { font-size: 30px; }
+  .chapter-card__head .lede { margin-top: 8px; font-size: 17px; }
+  .chapter-card__body { order: 3; margin-top: auto; }
+  .chapter-card__body .steps { font-size: 15.5px; }
+  html:not(.calm) .chapter-card__body .steps { margin-top: 0; }
+  /* each paragraph has its own panel, hugging it just above the control */
+  .chapter-card__body .step { align-self: end; }
+  .frame--chapter .frame__aside { order: 2; }
+  /* the myths strip is the picture alone (its words are in the chapter); without the 3D, every panel keeps its title and notes */
+  html:not(.calm) .frame--chapter .frame__aside { width: min(100%, 15rem); align-self: flex-end; }
+  html:not(.calm) .frame--chapter .demo-card { padding: 10px 12px; }
+  html:not(.calm) .frame--chapter .demo-card :is(h3, .demo-card__caption, .demo-card__note) { display: none; }
+  html.calm .frame--chapter .frame__body, html.calm .frame--chapter .chapter-card { display: block; }
+  .crumb { top: auto; bottom: 14px; left: 50%; transform: translateX(-50%); }
+  .crumb__menu { top: auto; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); }
+  .crumb__note { top: auto; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); }
+  /* the sound switch shows its state by its dot; its name stays for screen readers */
+  .crumb__sound-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* one label at most on a phone; the gongs' label is two rows: what to do, then the pattern and its note */
+  .labels__lines g:not(:first-child), .label:not(:first-of-type) { display: none; }
+  .label--object { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 10px; max-width: calc(100vw - 2 * var(--gutter)); }
+  .label--object > p:first-child { grid-column: 1 / -1; }
+  .label--object .small { font-size: 13px; line-height: 1.35; }
+  /* the key terms are in bold in the text itself; the head keeps to its title and one sentence */
+  .chapter-card__head .terms-line { display: none; }
   .row { grid-template-columns: 1fr; }
-  .row__tag, .row .soon-tag { grid-column: 1; }
-  .card::before { inset: 6px -5px -7px 5px; }
+  .row__tag, .row__soon { grid-column: 1; }
+  html.calm .frame { padding: 10vh var(--gutter) 88px; }
 }
 
 /* "Coming soon" issues: muted by colour, never by opacity, so small text keeps AA contrast */
-.row.is-soon .row__name, .rail a.is-soon { color: var(--ink-soft); }
-.sec--people.is-soon .card--people h2 { color: var(--ink); }
+.row.is-soon .row__name, .crumb__menu a.is-soon { color: var(--ink-soft); }

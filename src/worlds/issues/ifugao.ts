@@ -13,11 +13,11 @@ export const ifugao: IssueDesign = {
     sources: { dist: 3.2, tilt: 0.55, yaw: 0.2, dlat: 0.1 },
   },
   demos: {
-    overview: { kind: 'region' },
     'myths-stories': { kind: 'story', scene: 'flood' },
     music: { kind: 'gongs', gong: 'flat' },
-    'beliefs-rituals': { kind: 'terms' },
     // the red, black and white the Crafts chapter names; structure only, no Ifugao design
     crafts: { kind: 'weave', structure: 'plain', colors: ['#8e2a2a', '#1d1b17', '#efe7d6'] },
   },
+  // the object a chapter shows is named in the chapter's own words
+  labels: { music: 'gangsa' },
 }

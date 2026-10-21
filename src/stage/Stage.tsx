@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import PaperLand from './PaperLand'
 import Pins from './Pins'
 import MapHotspots from './MapHotspots'
+import Anchors from './Anchors'
 import Props from './Props'
 import StaticWorld from '../static/StaticWorld'
 import { journey } from '../worlds/engine'
@@ -158,6 +159,7 @@ export default function Stage() {
           <Pins />
           <MapHotspots />
           <Props />
+          <Anchors />
           <WarmUp laidOut={laidOut} onDone={onCompiled} />
         </Canvas>
       </div>

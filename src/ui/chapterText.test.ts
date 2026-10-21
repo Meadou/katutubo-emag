@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sentenceWith, splitLede, sentences } from './chapterText'
+import { blocks, sentenceWith, splitLede, sentences } from './chapterText'
 
 describe('splitLede', () => {
   it('takes the first sentence as the lede and keeps every other word', () => {
@@ -31,5 +31,16 @@ describe('sentences and entities', () => {
   it('decodes the entities the Markdown renderer writes', () => {
     expect(sentences('<p>Traditional T&#39;boli belief &amp; &quot;custom&quot; &lt;here&gt;.</p>'))
       .toEqual(['Traditional T\'boli belief & "custom" <here>.'])
+  })
+})
+
+describe('blocks', () => {
+  it('splits a chapter body into its paragraphs, quotes and lists, in order and whole', () => {
+    const html = '<p>One <strong>two</strong>.</p>\n<blockquote>\n<p>A quote.</p>\n</blockquote>\n<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n<p>Last.</p>\n'
+    expect(blocks(html)).toEqual(['<p>One <strong>two</strong>.</p>', '<blockquote>\n<p>A quote.</p>\n</blockquote>', '<ul>\n<li>a</li>\n<li>b</li>\n</ul>', '<p>Last.</p>'])
+  })
+  it('has nothing to split in an empty body', () => {
+    expect(blocks('')).toEqual([])
+    expect(blocks('  \n ')).toEqual([])
   })
 })

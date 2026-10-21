@@ -14,7 +14,7 @@ export interface Chapter {
   html: string
   /** 3D object key from the `objects:` frontmatter line, for chapter models dropped in with fromFactory */
   object: string
-  /** the chapter's **bold** key terms, shown as callouts pinned around its 3D object */
+  /** the chapter's **bold** key terms, listed under its title */
   terms: string[]
 }
 

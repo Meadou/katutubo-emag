@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import Nav from './ui/Nav'
+import Crumb from './ui/Crumb'
 import Loader from './ui/Loader'
 import SoundBed from './ui/SoundBed'
+import Labels from './ui/Labels'
 import Journey from './pages/Journey'
 import IssueIndex from './pages/IssueIndex'
 import About from './pages/About'
@@ -40,7 +41,7 @@ export default function App() {
       ) : (
         <StaticWorld />
       )}
-      <Nav />
+      <Crumb />
       <SoundBed />
       <main className="pages" aria-busy={!ready}>
         <Routes>
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="*" element={<Journey />} />
         </Routes>
       </main>
+      {/* after the words in the Tab order: a section's heading, then the labels on its map */}
+      {mode === 'live' && <Labels />}
       <Loader live={mode === 'live'} />
     </>
   )

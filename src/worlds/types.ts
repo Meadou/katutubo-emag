@@ -41,11 +41,29 @@ export interface WorldState {
   people?: string
   /** a people's place marked on the map */
   pin?: { lon: number; lat: number }
+  /** words attached to the visual by a thin leader line: at a place on the map, or on the chapter's object */
+  labels?: Label[]
   /**
    * A travel world is a journey, not a place: across its section the camera zooms from one world to
    * another along one smooth path. The other fields are ignored while it travels.
    */
   travel?: { from: string; to: string }
+}
+
+/**
+ * A label on the visual. A place label names a people at their place (and may link there); an object
+ * label stands on the chapter's object, which then carries its own controls (the gongs to play).
+ */
+export interface Label {
+  key: string
+  lon: number
+  lat: number
+  /** height above the ground of the point the line touches (an object's top) */
+  up?: number
+  text: string
+  sub?: string
+  href?: string
+  object?: string
 }
 
 /** A world mixed between two neighbours, as the engine and the renderers use it. */

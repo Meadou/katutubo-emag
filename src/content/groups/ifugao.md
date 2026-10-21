@@ -8,7 +8,7 @@ lat: 16.85
 color: #7fb069
 tagline: Sculptors of the mountains, keepers of the Hudhud.
 angle: Architecture & Sacred Chants
-objects: terraces, spirits, gong, spirits, terraces
+objects: terraces, spirits, gong, spirits, loom
 draft: true
 ---
 

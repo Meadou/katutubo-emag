@@ -20,6 +20,14 @@ const decode = (t: string) =>
   t.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) =>
     e[0] !== '#' ? NAMED[e.toLowerCase()] ?? m : String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : +e.slice(1)))
 
+/** A chapter body's top-level blocks (paragraphs, quotes, lists) as HTML, in order: what steps in place, one at a time. */
+export function blocks(html: string): string[] {
+  if (!html.trim()) return []
+  const t = document.createElement('template')
+  t.innerHTML = html
+  return [...t.content.children].map((e) => e.outerHTML)
+}
+
 /** A chapter's sentences as plain text, in order (paragraph ends count as spaces). */
 export function sentences(html: string): string[] {
   const text = decode(html.replace(/<\/(?:p|li|blockquote|h\d)>/g, ' ').replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim()

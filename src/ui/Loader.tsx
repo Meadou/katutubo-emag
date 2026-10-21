@@ -28,7 +28,7 @@ export default function Loader({ live }: { live: boolean }) {
   return (
     <div className={`loader ${done ? 'is-done' : ''}`}>
       <div className="card loader__card" role="status">
-        <p className="card__over">{strings.intro.over}</p>
+        <p className="over">{strings.intro.over}</p>
         <p className="loader__name">{strings.site.name}</p>
         <p className="masthead">{strings.site.masthead}</p>
         <div className="loader__bar" aria-hidden="true"><i style={{ transform: `scaleX(${done ? 1 : p / 100})` }} /></div>

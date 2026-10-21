@@ -3,10 +3,8 @@ export interface Shot { dist: number; tilt: number; yaw: number; dlon?: number; 
 
 /** The live demo paired with a chapter (the anime.js pattern: short text, something to try beside it). */
 export type DemoSpec =
-  | { kind: 'region' }
   | { kind: 'story'; scene: 'flood' | 'abaca' }
   | { kind: 'gongs'; gong: 'flat' | 'bossed' }
-  | { kind: 'terms' }
   | { kind: 'weave'; structure: 'plain' | 'twill'; colors: string[] }
 
 /**
@@ -21,6 +19,8 @@ export interface IssueDesign {
   shots: Record<string, Shot>
   /** demos by chapter id */
   demos: Record<string, DemoSpec>
+  /** the label on a chapter's object, by chapter id: a term from that chapter's own text (tested) */
+  labels?: Record<string, string>
 }
 
 import { ifugao } from './ifugao'

@@ -24,7 +24,7 @@ export default function IssueIndex() {
       <div id="page" data-world="page" className="sec sec--plain">
         <div className="card card--index">
           <h1>{s.title}</h1>
-          <p className="lede lede--small">{fill(s.summary, { total: groups.length, ready: groups.length - soon, soon })}</p>
+          <p className="lede">{fill(s.summary, { total: groups.length, ready: groups.length - soon, soon })}</p>
           <div className="chips" role="group" aria-label={s.filter}>
             {FILTERS.map((f) => (
               <button key={f} type="button" className={f === filter ? 'is-on' : ''} aria-pressed={f === filter} onClick={() => setFilter(f)}>
@@ -43,7 +43,7 @@ export default function IssueIndex() {
                     <span className="row__where">{g.islandGroup} · {g.region}</span>
                     <span className="row__coords nums">{coords(g)}</span>
                     {g.angle && <span className="row__tag">{g.angle}</span>}
-                    {g.placeholder && <span className="soon-tag">{strings.soon.title}</span>}
+                    {g.placeholder && <span className="row__soon">{strings.soon.title}</span>}
                   </Link>
                 </li>
               ))}

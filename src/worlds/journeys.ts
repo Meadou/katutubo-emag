@@ -1,7 +1,8 @@
 import { groups as allGroups, type Group, type IslandGroup } from '../content'
 import { TIMES, isStillChapter, timeForChapter, type TimeName } from './palettes'
 import { DESIGNS, type Shot } from './issues'
-import type { Camera, WorldState } from './types'
+import type { Camera, Label, WorldState } from './types'
+import { coords } from '../i18n/t'
 
 const FOV = 35
 const HALF = Math.tan(((FOV / 2) * Math.PI) / 180)
@@ -62,6 +63,9 @@ export type Section =
   | { kind: 'sources'; id: string; group: Group }
   | { kind: 'end'; id: string }
 
+/** How high the leader line meets each object that has a label (the gong stand's beam; the loom's cloth). */
+const OBJECT_TOP: Record<string, number> = { gong: 0.19, loom: 0.03 }
+
 export const stopId = (slug: string) => `stop-${slug}`
 export const chapterId = (slug: string, chapter: string) => `ch-${slug}-${chapter}`
 
@@ -88,7 +92,9 @@ export function buildJourney(aspect: number, groups: Group[] = allGroups): { sec
     if (!peoples.length) continue
     const v = REGION_VIEW[region]
     const mid = `region-${region.toLowerCase()}`
-    worlds[mid] = world('midday', { ...map, camera: { lon: v.lon, lat: v.lat, dist: fitDist(v.w, v.h, aspect), tilt: 0.5, yaw: 0 } })
+    // each of the group's peoples is named at its place on the map, and the name leads there
+    const named: Label[] = peoples.map((g) => ({ key: g.slug, lon: g.lon, lat: g.lat, text: g.name, href: `#/group/${g.slug}` }))
+    worlds[mid] = world('midday', { ...map, labels: named, camera: { lon: v.lon, lat: v.lat, dist: fitDist(v.w, v.h, aspect), tilt: 0.5, yaw: 0 } })
     zoom(`to-${region.toLowerCase()}`, last, mid)
     sections.push({ kind: 'region', id: mid, region, peoples })
 
@@ -99,7 +105,7 @@ export function buildJourney(aspect: number, groups: Group[] = allGroups): { sec
       const own = { site, people: g.slug, pin: g }
       const stopShot = d?.shots.stop ?? { dist: 2.6, tilt: 0.78, yaw: 0 }
       worlds[stop] = world(g.placeholder ? 'day' : 'morning', {
-        ...own, still: false, props: g.placeholder ? [] : [g.chapters[0]?.object].filter(Boolean) as string[], camera: at(site, stopShot),
+        ...own, labels: [{ key: g.slug, lon: g.lon, lat: g.lat, text: g.name, sub: coords(g) }], still: false, props: g.placeholder ? [] : [g.chapters[0]?.object].filter(Boolean) as string[], camera: at(site, stopShot),
       })
       // between two peoples of one group the camera rises back to the group's mid zoom
       if (i > 0) zoom(`up-${g.slug}`, last, mid)
@@ -110,8 +116,11 @@ export function buildJourney(aspect: number, groups: Group[] = allGroups): { sec
       if (!g.placeholder && d) {
         g.chapters.forEach((c, k) => {
           const id = chapterId(g.slug, c.id)
+          // an object with something to try carries a label; a still chapter carries none
+          const labelled = OBJECT_TOP[c.object] !== undefined && !isStillChapter(c.id)
+          const labels: Label[] = labelled ? [{ key: c.object, lon: site.lon, lat: site.lat, up: OBJECT_TOP[c.object], text: d.labels?.[c.id] ?? '', object: c.object }] : []
           worlds[id] = world(timeForChapter(c.id), {
-            ...own, still: isStillChapter(c.id), props: [c.object], camera: at(site, d.shots[c.id] ?? stopShot),
+            ...own, labels, still: isStillChapter(c.id), props: [c.object], camera: at(site, d.shots[c.id] ?? stopShot),
           })
           sections.push({ kind: 'chapter', id, group: g, index: k })
           last = id

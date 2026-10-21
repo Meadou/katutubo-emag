@@ -14,27 +14,37 @@ describe('the journey', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Katutubo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Begin the journey' })).toBeInTheDocument()
     expect(screen.queryByText(/turn on sound/)).toBeNull()
-    // the one sound switch is in the nav
-    const nav = screen.getByRole('navigation', { name: 'Main' })
-    expect(within(nav).getByRole('button', { name: /Sound/ })).toHaveAttribute('aria-pressed', 'false')
+    // the one sound switch lives in the one control
+    expect(within(screen.getByRole('banner')).getByRole('button', { name: /Sound/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('lists every people in the rail from the first screen: the keyboard and screen-reader route', () => {
+  it('has one control, the breadcrumb pill, first in the page: the keyboard and screen-reader route to every people', () => {
     at('/')
-    const rail = screen.getByRole('navigation', { name: 'Journey' })
-    expect(within(rail).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `#/group/${g.slug}`))
-    // it comes right after the opening card in the page, so Tab reaches it before any chapter
-    const firstRegion = document.getElementById('region-luzon')!
-    expect(rail.compareDocumentPosition(firstRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Begin the journey' }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const crumb = screen.getByRole('banner')
+    // it comes before everything else, so it is the first stop for the Tab key
+    expect(crumb.compareDocumentPosition(screen.getByRole('main')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const open = within(crumb).getByRole('button', { name: /Choose where to go/ })
+    expect(open).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('navigation', { name: 'Journey' })).toBeNull()
+    fireEvent.click(open)
+    expect(open).toHaveAttribute('aria-expanded', 'true')
+    const menu = screen.getByRole('navigation', { name: 'Journey' })
+    const peoples = within(menu).getAllByRole('link').filter((a) => a.getAttribute('href')?.startsWith('#/group/'))
+    expect(peoples.map((a) => a.getAttribute('href'))).toEqual(groups.map((g) => `#/group/${g.slug}`))
+    // Escape closes it and puts the reader back on its button
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(open).toHaveAttribute('aria-expanded', 'false')
+    expect(document.activeElement).toBe(open)
   })
 
   it('visits nine peoples, three in each island group, north to south', () => {
     at('/')
     expect(groups.map((g) => g.slug)).toEqual(['kalinga', 'ifugao', 'bugkalot', 'suludnon', 'ati', 'magahat', 'maranao', 'tboli', 'samadilaut'])
     for (const r of ['Luzon', 'Visayas', 'Mindanao']) expect(groups.filter((g) => g.islandGroup === r)).toHaveLength(3)
-    const rail = screen.getByRole('navigation', { name: 'Journey' })
-    expect(within(rail).getAllByRole('link').map((a) => a.textContent)).toEqual(groups.map((g) => g.name))
+    fireEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: /Choose where to go/ }))
+    const menu = screen.getByRole('navigation', { name: 'Journey' })
+    const peoples = within(menu).getAllByRole('link').filter((a) => a.getAttribute('href')?.startsWith('#/group/'))
+    expect(peoples.map((a) => a.textContent)).toEqual(groups.map((g) => g.name))
   })
 
   it('says "Coming soon" at a people whose issue is being prepared, and invents nothing there', () => {

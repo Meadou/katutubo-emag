@@ -1,31 +1,59 @@
 import { describe, expect, it } from 'vitest'
-import { recedeAt } from './Recede'
+import { frameAt, tabbable } from './Recede'
 
-describe('the chapter card receding', () => {
-  it('stays put while the reader is still reading', () => {
-    expect(recedeAt(0, false)).toEqual({ hidden: false, k: 0 })
-    expect(recedeAt(0.55, false).k).toBe(0)
+describe('a section\'s frame', () => {
+  it('is out of sight before its section, and fades in place as the section begins', () => {
+    expect(frameAt(0, false)).toMatchObject({ hidden: true, k: 1 })
+    const half = frameAt(0.04, false)
+    expect(half.k).toBeGreaterThan(0)
+    expect(half.k).toBeLessThan(1)
+    expect(half.dir).toBe(1)
+    expect(frameAt(0.1, false)).toMatchObject({ hidden: false, k: 0 })
   })
 
-  it('is gone once the section is read, and comes back only well below where it left', () => {
-    expect(recedeAt(0.75, false).hidden).toBe(true)
-    expect(recedeAt(1, true).hidden).toBe(true)
-    expect(recedeAt(0.46, true).hidden).toBe(true)
-    expect(recedeAt(0.45, true).hidden).toBe(false)
+  it('holds still and fully readable while its section is read', () => {
+    for (const p of [0.2, 0.5, 0.8]) expect(frameAt(p, false).k).toBe(0)
   })
 
-  it('does not flicker for a reader resting between the two thresholds', () => {
-    // 0.6 is in the band: whatever it was, it stays
-    expect(recedeAt(0.6, true).hidden).toBe(true)
-    expect(recedeAt(0.6, false).hidden).toBe(false)
+  it('fades away as the journey continues, across a band rather than at once', () => {
+    const going = frameAt(0.9, false)
+    expect(going.k).toBeGreaterThan(0)
+    expect(going.k).toBeLessThan(1)
+    expect(going.dir).toBe(-1)
+    expect(frameAt(0.97, false).hidden).toBe(true)
+    expect(frameAt(1, true).hidden).toBe(true)
   })
 
-  it('fades across the band rather than snapping, and never passes fully opaque or transparent', () => {
-    expect(recedeAt(0.65, false).k).toBeCloseTo(0.5, 5)
-    for (const p of [0, 0.4, 0.5, 0.55, 0.6, 0.7, 0.75, 0.9, 1]) {
-      const { k } = recedeAt(p, false)
+  it('does not flicker for a reader resting near the end: once gone, it returns only well above', () => {
+    expect(frameAt(0.9, true).hidden).toBe(true)
+    expect(frameAt(0.81, true).hidden).toBe(true)
+    expect(frameAt(0.8, true).hidden).toBe(false)
+  })
+
+  it('can be there from the start (the cover) or stay to the end (the last screen)', () => {
+    expect(frameAt(0, false, { enter: false })).toMatchObject({ hidden: false, k: 0 })
+    expect(frameAt(1, false, { exit: false })).toMatchObject({ hidden: false, k: 0 })
+  })
+
+  it('never goes past fully shown or fully gone', () => {
+    for (const p of [0, 0.03, 0.08, 0.5, 0.86, 0.9, 0.97, 1]) {
+      const { k } = frameAt(p, false)
       expect(k).toBeGreaterThanOrEqual(0)
       expect(k).toBeLessThanOrEqual(1)
     }
+  })
+})
+
+describe('a frame out of sight', () => {
+  it('takes its controls out of the Tab order and puts them back as they were, keeping its words', () => {
+    const root = document.createElement('div')
+    root.innerHTML = '<a href="#/x">a</a><button>b</button><span tabindex="0">c</span><p>words</p>'
+    const marks = () => [...root.querySelectorAll('a, button, span')].map((e) => e.getAttribute('tabindex'))
+    tabbable(root, false)
+    expect(marks()).toEqual(['-1', '-1', '-1'])
+    tabbable(root, false)
+    tabbable(root, true)
+    expect(marks()).toEqual([null, null, '0'])
+    expect(root.textContent).toBe('abcwords')
   })
 })

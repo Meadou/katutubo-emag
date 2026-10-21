@@ -13,12 +13,12 @@ export const tboli: IssueDesign = {
     sources: { dist: 3.2, tilt: 0.55, yaw: 0.1 },
   },
   demos: {
-    overview: { kind: 'region' },
     // abaca to thread to cloth; t'nalak designs are dream-given and are not drawn
     'myths-stories': { kind: 'story', scene: 'abaca' },
     music: { kind: 'gongs', gong: 'bossed' },
-    'beliefs-rituals': { kind: 'terms' },
     // the browns, reds and creams the Overview names; plain abaca weave, no t'nalak design
     crafts: { kind: 'weave', structure: 'plain', colors: ['#5a3a24', '#8e2f2a', '#e8dcc4'] },
   },
+  // the object a chapter shows is named in the chapter's own words
+  labels: { music: 'klintang' },
 }

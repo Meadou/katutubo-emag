@@ -8,8 +8,16 @@ export const en = {
     masthead: 'the first peoples of the islands',
     skip: 'Skip to the story',
   },
-  nav: {
-    label: 'Main', cover: 'Journey', issues: 'Issues', about: 'About', sound: 'Sound', on: 'on', off: 'off',
+  crumb: {
+    label: 'Journey',
+    open: 'Choose where to go',
+    journey: 'The journey',
+    issues: 'All issues',
+    about: 'About',
+    chapters: 'Chapters',
+    sound: 'Sound',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
     soundNote: 'Wind and water, synthesized in your browser. Not a recording.',
   },
   intro: {
@@ -24,12 +32,8 @@ export const en = {
     Mindanao: 'Epics, Dream-Inspired Textiles, and Maritime Heritage',
   },
   journey: {
-    rail: 'Journey',
-    chapters: 'Chapters',
-    angle: 'The feature',
     aka: 'also known as {aka}',
-    follow: '{n} chapters follow, then the sources.',
-    draft: 'Draft. Facts still need to be checked against community, NCIP and academic sources.',
+    draft: 'Draft: facts still need checking against community, NCIP and academic sources.',
     terms: 'Key terms',
     sources: 'Sources and further reading',
     endTitle: 'The end of the journey, for now',
@@ -41,8 +45,14 @@ export const en = {
     title: 'Coming soon',
     body: 'This issue is still being prepared. Its stories will be shared here once they have been gathered and checked with care.',
   },
+  labels: {
+    tapGong: 'Tap a gong to hear it.',
+    play: 'Play the pattern',
+    stop: 'Stop',
+    synthesized: 'Synthesized, not a recording.',
+    weave: 'Plain weave, thread by thread. Structure only, not a community design.',
+  },
   demo: {
-    region: { title: 'Where they live', caption: '{region}. The marked square is the land you zoomed into.', zoom: 'Zoom to the region', wide: 'Show the whole archipelago' },
     story: { title: 'The story, in stages', caption: 'Each scene appears as you read its part. People are drawn still, as silhouettes.', scene: 'Scene {n} of {of}' },
     gongs: {
       title: 'Strike the gongs',
@@ -53,14 +63,6 @@ export const en = {
       gong: 'Gong {n}',
     },
     synthesized: 'Synthesized in your browser to suggest the sound. Not a recording and not a traditional piece.',
-    terms: {
-      title: 'Read slowly',
-      caption: 'These things are sacred to many. Here they are simply named, in the words of the chapter.',
-      pick: 'Choose a term to read the sentence it comes from.',
-      captionLines: 'These things are sacred to many. The chapter is read one sentence at a time, with nothing moving.',
-      next: 'Next sentence',
-      count: '{n} of {of}',
-    },
     weave: {
       title: 'Thread by thread',
       plain: 'A plain over-and-under weave draws itself as you scroll: warp first, then the weft. Structure only, not a design of the community.',
@@ -80,7 +82,7 @@ export const en = {
     respectTitle: 'A note on respect',
     respect: 'Each culture here belongs to living communities. We use the names the communities use for themselves. We try not to treat sacred objects or rituals as decoration: they are kept still, and only named. Every article lists its sources. If you belong to one of these communities and see an error, we want to hear from you.',
     madeTitle: 'How it is made',
-    made: 'A static website, with no database and no tracking. The land is cut from paper sheets, one for each contour of open elevation data (Terrain Tiles on AWS: SRTM, ETOPO1 and other sources). The terraced mountain and the objects are drawn for illustration. The wind and water you can turn on, and any instrument, are synthesized in your browser to suggest a sound; nothing is a recording or a traditional piece.',
+    made: 'A static website, with no database and no tracking. The land is cut from paper sheets, one for each contour of open elevation data (Terrain Tiles on AWS: SRTM, ETOPO1 and other sources). The gong and the loom are simple models drawn for illustration. The wind and water you can turn on, and any instrument, are synthesized in your browser to suggest a sound; nothing is a recording or a traditional piece.',
   },
   loading: 'Laying out the paper',
   loaded: 'Ready',

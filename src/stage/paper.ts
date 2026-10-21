@@ -11,7 +11,8 @@ export const toX = (lon: number) => lon - 122
 export const toZ = (lat: number) => -(lat - 12)
 
 const COAST = 0.012
-const RISE = 0.0032
+// enough relief that the map reads as 3D from the cover down to a people's land
+const RISE = 0.0043
 /** The open sea's floor, below the shallow shelf at height 0. */
 export const SEA_FLOOR = -0.012
 /** Height of the top of a sheet cut at `level` metres. */
