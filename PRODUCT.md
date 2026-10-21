@@ -13,7 +13,7 @@ web
 
 ## Product Purpose
 
-An interactive e-magazine. Each "issue" introduces one Indigenous People of the Philippines through chapters: Overview, Myths & Stories, Music, Beliefs & Rituals, Crafts, and Sources. Readers reach issues from a 3D map of the archipelago, the cover list, or the index, which can be filtered by Luzon, Visayas and Mindanao.
+An interactive e-magazine. Each "issue" introduces one Indigenous People of the Philippines through chapters: Overview, Myths & Stories, Music, Beliefs & Rituals, Crafts, and Sources. Readers reach issues from the 3D map of the archipelago (its pins and the labels on it), the breadcrumb pill's menu, or the index, which can be filtered by Luzon, Visayas and Mindanao.
 
 Success means a grader who opens the link cold understands what Katutubo is, can explore it without help, and comes away seeing both the craft and the respect for the subject.
 
@@ -33,7 +33,7 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 - Nine peoples, three per island group, visited north to south in one journey: Kalinga, Ifugao, Bugkalot (Luzon); Suludnon, Ati, Magahat (Visayas); Maranao, T'boli, Sama Dilaut (Mindanao). Ifugao and T'boli are draft articles; the other seven are placeholders.
 - **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. Every interface string is in `src/i18n/en.ts`, so a Filipino edition is one more file with the same keys; the switch itself is not built yet.
 - The 3D is one paper map of the archipelago (with Lake Lanao), zoomed in and out; there is no separate detailed terrain per place. A loading screen prepares the map and its shaders first, so the journey runs smoothly on laptops with integrated graphics. The gong stand and the loom are simple paper stand-ins at map scale; the detailed terraced mountain was removed for performance. More simple objects can come later (`fromFactory` in `src/stage/props/` takes img2threejs models).
-- Sound: in-browser synthesized gong patterns in the Music demos, labelled *synthesized*, and a synthesized wind-and-water ambience. The nav's switch is the one sound control; turning it on says the sound is synthesized. Real recordings only with clear permission.
+- Sound: in-browser synthesized gongs, labelled *synthesized*, and a synthesized wind-and-water ambience. In the Music chapters the reader taps the 3D gongs, or plays the pattern from the gongs' label; without the 3D, flat gongs sit beside the chapter. The breadcrumb pill's switch is the one sound control; turning it on says the sound is synthesized. Real recordings only with clear permission.
 - **Open decision: content sourcing.** The user hasn't decided between published sources only (NCIP, NCCA, academic, museums) and direct community contact and review.
 
 ## Brand Commitments
@@ -57,7 +57,7 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 
 ## Accessibility & Inclusion
 
-- `prefers-reduced-motion` is respected: the reader gets the static paper journey (the same sections drawn as flat SVG, simple fades, no camera drift, no fly-in). Browsers without WebGL, and devices too slow even for the lighter 3D tier, get the same.
-- Every 3D marker has a keyboard and screen-reader route: the journey rail, on screen from the first view and next in Tab order after the opening card.
+- `prefers-reduced-motion` is respected: the reader gets the static paper journey (the same sections drawn as flat SVG, the words in the page as ordinary text, no fades, no camera drift). Browsers without WebGL, and devices too slow even for the lighter 3D tier, get the same.
+- Every 3D marker has a keyboard and screen-reader route: the breadcrumb pill ("Katutubo / Ifugao ▾"), first in Tab order, opens onto all nine peoples and the current people's chapters; a choice moves focus to that section's heading. The Tab key reaches only the words in sight, then the labels on the map (the gongs' "Play the pattern" among them). Every word of every section stays in the page for screen readers.
 - New UI keeps text at WCAG AA contrast. This is enforced for placeholder styles by a test.
 - Bilingual EN/Filipino is a stated inclusion goal.
