@@ -4,35 +4,39 @@ import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import PaperLand from './PaperLand'
 import Pins from './Pins'
-import MapHotspots from './MapHotspots'
 import Anchors from './Anchors'
 import Props from './Props'
+import Clouds from './Clouds'
 import StaticWorld from '../static/StaticWorld'
 import { journey } from '../worlds/engine'
 import { fallBackToStatic, lowPower } from '../worlds/mode'
 import { mixColor } from '../worlds/blend'
 import { useLoading } from '../ui/loading'
-import { groundHeight } from './place'
+import { placeOn } from './place'
 import { toX, toZ } from './paper'
 
 type Tier = 'high' | 'lite'
 
 /**
  * The camera follows the blended world, with a slight drift toward the pointer (none in still
- * worlds), and keeps its target on the ground as the land rises and falls beneath it.
+ * worlds), and keeps its target on the ground as the land rises and falls beneath it, riding with a
+ * Davao piece as it lifts and parts.
  */
 function CameraRig() {
   const { camera } = useThree()
   const look = useMemo(() => new THREE.Vector3(), [])
-  const y = useRef(0)
+  const off = useMemo(() => new THREE.Vector3(), [])
   useFrame(({ pointer }, dt) => {
     const w = journey.current
     if (!w) return
     const c = w.camera
-    y.current = THREE.MathUtils.damp(y.current, groundHeight(c.lon, c.lat), 4, dt)
+    const at = placeOn(c.lon, c.lat, w.map)
+    off.x = THREE.MathUtils.damp(off.x, at.x - toX(c.lon), 4, dt)
+    off.y = THREE.MathUtils.damp(off.y, at.y, 4, dt)
+    off.z = THREE.MathUtils.damp(off.z, at.z - toZ(c.lat), 4, dt)
     const yaw = c.yaw + pointer.x * 0.05 * w.drift
     const tilt = Math.min(1.35, c.tilt + pointer.y * 0.025 * w.drift)
-    look.set(toX(c.lon), y.current, toZ(c.lat))
+    look.set(toX(c.lon) + off.x, off.y, toZ(c.lat) + off.z)
     camera.position.set(look.x + c.dist * Math.sin(tilt) * Math.sin(yaw), look.y + c.dist * Math.cos(tilt), look.z + c.dist * Math.sin(tilt) * Math.cos(yaw))
     const pc = camera as THREE.PerspectiveCamera
     pc.near = Math.max(0.0005, c.dist * 0.01)
@@ -79,7 +83,8 @@ function Light({ shadows }: { shadows: boolean }) {
     sun.intensity = w.sun.intensity
     if (shadows) {
       // the shadow frame follows the world's camera target and sun (not the pointer drift), and the props as they rise
-      const key = `${c.lon.toFixed(4)}:${c.lat.toFixed(4)}:${c.dist.toFixed(4)}:${az.toFixed(3)}:${el.toFixed(3)}:${Object.values(w.propWeights).map((v) => v.toFixed(2)).join()}`
+      const m = w.map
+      const key = `${c.lon.toFixed(4)}:${c.lat.toFixed(4)}:${c.dist.toFixed(4)}:${az.toFixed(3)}:${el.toFixed(3)}:${Object.values(w.propWeights).map((v) => v.toFixed(2)).join()}:${m.rise.toFixed(4)}:${m.part.toFixed(4)}:${Object.values(m.focus).map((v) => v.toFixed(3)).join()}`
       if (key !== shadowKey.current) { shadowKey.current = key; gl.shadowMap.needsUpdate = true }
       const s = sun.shadow.camera as THREE.OrthographicCamera
       const half = c.dist * 0.9
@@ -157,7 +162,7 @@ export default function Stage() {
           <Light shadows={shadows} />
           <PaperLand shadows={shadows} onReady={onLaid} />
           <Pins />
-          <MapHotspots />
+          {shadows && <Clouds />}
           <Props />
           <Anchors />
           <WarmUp laidOut={laidOut} onDone={onCompiled} />

@@ -43,11 +43,39 @@ export interface WorldState {
   pin?: { lon: number; lat: number }
   /** words attached to the visual by a thin leader line: at a place on the map, or on the chapter's object */
   labels?: Label[]
+  /** names set on the paper itself, centred on what they name: provinces, landmarks, the sea */
+  names?: PlaceName[]
+  /** the peoples (slugs) whose pins stand lit in this world; when set, the others are set back */
+  lit?: string[]
   /**
    * A travel world is a journey, not a place: across its section the camera zooms from one world to
-   * another along one smooth path. The other fields are ignored while it travels.
+   * another along one smooth path, or through the cameras in `via` when a shot is choreographed. The
+   * other fields are ignored while it travels.
    */
-  travel?: { from: string; to: string }
+  travel?: { from: string; to: string; via?: Camera[] }
+  /** how the map itself is laid: the rest of the country, the Davao Region and its pieces */
+  map?: Partial<MapState>
+}
+
+/** The map's own state in a world: what stands out, what recedes, and how the Davao pieces part. */
+export interface MapState {
+  /** how far the rest of the country fades toward unprinted paper, 0..1 */
+  dim: number
+  /** how high the Davao Region stands out of the sheet, in world units */
+  rise: number
+  /** how far the Davao pieces part from each other, in world units */
+  part: number
+  /** how strongly each Davao piece takes its own colour, 0..1 */
+  tint: number
+  /** how present the paper clouds are, 0..1 (the descent) */
+  clouds: number
+  /** the Davao piece in focus: lifted higher and lit, while the others settle */
+  focus: string | null
+}
+
+/** A map state mixed between worlds: the focus becomes a weight per piece. */
+export interface MapBlend extends Omit<MapState, 'focus'> {
+  focus: Record<string, number>
 }
 
 /**
@@ -66,10 +94,20 @@ export interface Label {
   object?: string
 }
 
+/** A name printed on the map, centred on its place: a province, a landmark, or a body of water. */
+export interface PlaceName {
+  key: string
+  lon: number
+  lat: number
+  text: string
+  kind: 'region' | 'province' | 'landmark' | 'water'
+}
+
 /** A world mixed between two neighbours, as the engine and the renderers use it. */
-export interface Blended extends WorldState {
+export interface Blended extends Omit<WorldState, 'map'> {
   /** how present each prop is */
   propWeights: Record<string, number>
   /** 0 when still, 1 when the camera may drift with the pointer */
   drift: number
+  map: MapBlend
 }

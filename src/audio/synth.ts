@@ -45,6 +45,57 @@ export function bossedGong(hz: number, at = now(), level = 1) {
   partials(hz, at, [[1, 0.5, 2.6], [2.76, 0.14, 1.1], [5.4, 0.05, 0.5], [0.5, 0.1, 1.8]], level)
 }
 
+const plucks = new Map<string, AudioBuffer>()
+
+/**
+ * A plucked string, computed once per pitch (Karplus-Strong: a burst of noise circling a delay line
+ * the length of one vibration, softened on each pass, the way a string loses its brightness).
+ */
+function pluckBuffer(c: AudioContext, hz: number, seconds: number, soft: number) {
+  const key = `${hz}:${seconds}:${soft}`
+  const cached = plucks.get(key)
+  if (cached) return cached
+  const n = Math.floor(c.sampleRate * seconds)
+  const buf = c.createBuffer(1, n, c.sampleRate)
+  const d = buf.getChannelData(0)
+  const period = Math.max(2, Math.round(c.sampleRate / hz))
+  const line = new Float32Array(period)
+  for (let i = 0; i < period; i++) line[i] = Math.random() * 2 - 1
+  let k = 0
+  for (let i = 0; i < n; i++) {
+    const next = (k + 1) % period
+    const v = line[k]
+    // average with the neighbour (the string's loss), slightly more for a softer, wooden tone
+    line[k] = (v * (1 - soft) + line[next] * soft) * 0.996
+    d[i] = v * 0.5
+    k = next
+  }
+  plucks.set(key, buf)
+  return buf
+}
+
+/**
+ * A two-string boat lute, suggested: a bright plucked melody string over a soft, unfretted drone.
+ * An approximation of the sound, not a recording; the demo that plays it says so.
+ */
+export function lutePluck(hz: number, droneHz: number | null, at = now(), level = 1) {
+  const { c, out: o } = audio()
+  const play = (f: number, gain: number, soft: number) => {
+    const src = c.createBufferSource(), g = c.createGain(), body = c.createBiquadFilter()
+    src.buffer = pluckBuffer(c, f, 2.2, soft)
+    // the hollowed wooden body: a broad resonance in the low middle
+    body.type = 'peaking'
+    body.frequency.value = 420
+    body.Q.value = 0.8
+    body.gain.value = 5
+    g.gain.value = gain * level
+    src.connect(body).connect(g).connect(o)
+    src.start(at)
+  }
+  play(hz, 0.9, 0.5)
+  if (droneHz) play(droneHz, 0.35, 0.62)
+}
+
 /**
  * The journey's ambience: wind over the highlands and water by the lakes and the sea, both filtered
  * noise with a slow swell. It is not a field recording of any place, and no music plays in it.

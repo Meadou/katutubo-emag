@@ -8,12 +8,13 @@ web
 
 ## Users
 
-- **Primary: graders of a school project.** Katutubo is the creator's school project. Teachers or panelists evaluate it by opening the published GitHub Pages link on their own phones or computers, with no guided demo. The site has to make its case unaided, on whatever device and browser a grader happens to use.
+- **Primary: graders of a school project.** Katutubo is a group's school project, graded against a written rubric: "E-Magazine: Myths, Stories, and Music of ICCs/IPs in the Davao Region" (accuracy 20, comparative analysis 20, cultural significance 20, organization 15, digital presentation 15, sources and cultural respect 10). Teachers open the published GitHub Pages link on their own phones or computers, with no guided demo. The site has to make its case unaided, on whatever device and browser a grader happens to use.
+- **The group (cover credits, in order):** Krizia Faye Amon, Marjhun Kyle Pamilar, Junrey Ryan Aurelio, Godwin Leonard, Vincent Anonuevo, Joshua Algene Bontuyan.
 - **The audience the magazine is written for:** Filipinos who want to know and value the Indigenous Peoples of the Philippines (from the About page: "so that more Filipinos can know and value them").
 
 ## Product Purpose
 
-An interactive e-magazine. Each "issue" introduces one Indigenous People of the Philippines through chapters: Overview, Myths & Stories, Music, Beliefs & Rituals, Crafts, and Sources. Readers reach issues from the 3D map of the archipelago (its pins and the labels on it), the breadcrumb pill's menu, or the index, which can be filtered by Luzon, Visayas and Mindanao.
+An interactive e-magazine that explores and compares the myths, stories and music of ten Indigenous Cultural Communities / Indigenous Peoples (ICCs/IPs) of the Davao Region, two from each of its five provinces. It follows the rubric's suggested contents, in order: a cover (title, group members, the instruments compared), an introduction with the contents of the issue, the peoples province by province (each with Myths & Stories and Music), a comparison across all ten (theme by theme on the map, a full table, and "compare any two"), cultural significance, a conclusion, respect and protocols, and references. Readers move through it on the 3D map, the breadcrumb pill's menu, or the index of peoples, filterable by province.
 
 Success means a grader who opens the link cold understands what Katutubo is, can explore it without help, and comes away seeing both the craft and the respect for the subject.
 
@@ -30,11 +31,11 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 
 - Static site: Vite + React + TypeScript, react-three-fiber/drei, deployed to GitHub Pages by GitHub Actions. No backend, no database, no tracking.
 - Content is Markdown in `src/content/groups/*.md`. Placeholder issues (`placeholder: true`) appear everywhere but publish no body. A content lint test guards every file.
-- Nine peoples, three per island group, visited north to south in one journey: Kalinga, Ifugao, Bugkalot (Luzon); Suludnon, Ati, Magahat (Visayas); Maranao, T'boli, Sama Dilaut (Mindanao). Ifugao and T'boli are draft articles; the other seven are placeholders.
+- Ten peoples, two per province, visited around the Davao Gulf: Ata Manobo, Sama (Davao del Norte); Mansaka, Dibabawon (Davao de Oro); Mandaya, Kagan (Davao Oriental); Tagakaulo, Sangil (Davao Occidental); Bagobo-Tagabawa, B'laan (Davao del Sur). All ten are placeholders while their articles are researched. Sama, Sangil, Dibabawon and Kagan say "Information unavailable for now": almost nothing on their myths and music was found in published sources, and the group will research them itself. The comparison is across all ten, not province by province. The old Ifugao and T'boli drafts are kept in `docs/research/`.
 - **Language: bilingual English / Filipino is the goal**, eventually with a language switch. The site is English-only today. Every interface string is in `src/i18n/en.ts`, so a Filipino edition is one more file with the same keys; the switch itself is not built yet.
-- The 3D is one paper map of the archipelago (with Lake Lanao), zoomed in and out; there is no separate detailed terrain per place. A loading screen prepares the map and its shaders first, so the journey runs smoothly on laptops with integrated graphics. The gong stand and the loom are simple paper stand-ins at map scale; the detailed terraced mountain was removed for performance. More simple objects can come later (`fromFactory` in `src/stage/props/` takes img2threejs models).
+- The 3D is one paper map, cut along real boundaries (geoBoundaries / NAMRIA, PSA, OCHA, CC BY 3.0 IGO): the country's 17 regions as separate pieces with a groove of sea between them, and the Davao Region as six pieces of its own (five provinces and Davao City), baked at four times the detail. The cover shows the whole country with the Davao Region in colour; a choreographed descent through paper clouds comes down onto the Davao Gulf, where the region parts into its provinces; the camera then circles the gulf province by province; the conclusion pulls back out to the whole country. A loading screen prepares the map and its shaders first, so the journey runs smoothly on laptops with integrated graphics. The gong stand and the loom are simple paper stand-ins at map scale; the detailed terraced mountain was removed for performance. More simple objects can come later (`fromFactory` in `src/stage/props/` takes img2threejs models).
 - Sound: in-browser synthesized gongs, labelled *synthesized*, and a synthesized wind-and-water ambience. In the Music chapters the reader taps the 3D gongs, or plays the pattern from the gongs' label; without the 3D, flat gongs sit beside the chapter. The breadcrumb pill's switch is the one sound control; turning it on says the sound is synthesized. Real recordings only with clear permission.
-- **Open decision: content sourcing.** The user hasn't decided between published sources only (NCIP, NCCA, academic, museums) and direct community contact and review.
+- **Content sourcing: published sources only** (decided 2026-10-22). No interviews were done; the magazine says so, credits the community co-authored sources and the tradition-bearers named in published texts, and reproduces no sacred chants, prayers or recordings.
 
 ## Brand Commitments
 
@@ -44,7 +45,7 @@ It's a magazine you move through, not a reference page. A paper-cut 3D archipela
 
 ## Evidence on Hand
 
-- Two draft articles (`ifugao.md`, `tboli.md`), marked `draft: true` and still needing fact-checking against community, NCIP and academic sources. A Mangyan draft, out of the current scope, is kept in `docs/research/mangyan.md`.
+- Research notes in `docs/research/` (a Manobo/Matigsalug note with sources; the old Ifugao, T'boli and Mangyan drafts, out of the current scope). Strongest shared sources for the Davao peoples: Cole (1913) *The Wild Tribes of Davao District* (Bagobo, Bila-an, Tagakaolo, Ata, Mandaya), Benedict (1916) on Bagobo myth and ceremony, Brandeis (2019) on Philippine boat lutes, Fuentes (1980) *A Treasury of Mandaya and Mansaka Folk Literature*.
 - No photographs, licensed recordings, community quotes or reviewer endorsements exist yet. `public/audio/` is empty. Future work must not fabricate any of these, and must not write facts, myths or taglines for placeholder groups.
 
 ## Product Principles

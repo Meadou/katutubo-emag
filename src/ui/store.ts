@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { startAmbience, stopAmbience } from '../audio/synth'
-import type { IslandGroup } from '../content'
 
 const KEY = 'katutubo:sound'
 const remembered = () => { try { return localStorage.getItem(KEY) === 'on' } catch { return false } }
@@ -10,9 +9,6 @@ interface Ui {
   /** which people's pin is being pointed at on the map */
   hovered: string | null
   setHovered: (s: string | null) => void
-  /** which island group is being pointed at on the map */
-  hoveredRegion: IslandGroup | null
-  setHoveredRegion: (r: IslandGroup | null) => void
   /** the reader asked for sound; it starts only from their tap */
   sound: boolean
   /** whether a sound preference from an earlier visit is waiting for a first tap */
@@ -23,8 +19,6 @@ interface Ui {
 export const useUi = create<Ui>((set) => ({
   hovered: null,
   setHovered: (hovered) => set({ hovered }),
-  hoveredRegion: null,
-  setHoveredRegion: (hoveredRegion) => set({ hoveredRegion }),
   sound: false,
   soundWanted: remembered(),
   // call from a click or key handler: that is the only moment browsers let sound begin

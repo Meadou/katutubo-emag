@@ -13,7 +13,7 @@ import type { PropProps } from './registry'
  */
 const S = 0.12
 
-/** Which gongs the people being read play, by their Music demo: flat (Ifugao gangsa) or bossed (T'boli klintang). */
+/** Which gongs the people being read play, by their Music demo: flat, or bossed (with a raised knob). */
 const kindHere = (): GongKind => {
   const music = DESIGNS[journey.current?.people ?? '']?.demos.music
   return music?.kind === 'gongs' ? music.gong : 'flat'
@@ -84,56 +84,6 @@ export function GongStand(_: PropProps) {
       <mesh geometry={g.beam} material={wood} position={[0, S * 1.6, 0]} castShadow />
       <group ref={flatRow}>{row('flat', 0.78)}</group>
       <group ref={bossedRow} visible={false}>{row('bossed', 0.62)}</group>
-    </group>
-  )
-}
-
-/** How many rows of cloth the loom weaves across its section. */
-const ROWS = 12
-
-/**
- * A backstrap loom laid out: two beams and the warp between them. As the chapter is read, the cloth
- * weaves itself row by row, in the colours the chapter names. Structure only, no design.
- */
-export function LoomFrame(_: PropProps) {
-  const g = useMemo(() => {
-    const warp: THREE.Vector3[] = []
-    for (let i = 0; i <= 16; i++) { const x = (-1 + i / 8) * S; warp.push(new THREE.Vector3(x, S * 0.1, -S * 1.4), new THREE.Vector3(x, S * 0.1, S * 1.4)) }
-    return {
-      beam: new THREE.CylinderGeometry(S * 0.07, S * 0.07, S * 2.3, 8).rotateZ(Math.PI / 2),
-      warp: new THREE.BufferGeometry().setFromPoints(warp),
-      // one row of weft: it grows across the warp from one side, as if passed through by hand
-      row: new THREE.BoxGeometry(S * 2, S * 0.02, S * 0.17).translate(S, 0, 0),
-    }
-  }, [])
-  const wood = useMemo(() => paperMaterial('#6b4a2b'), [])
-  const thread = useMemo(() => new THREE.LineBasicMaterial({ color: '#e8dcc4' }), [])
-  const cloth = useMemo(() => Array.from({ length: ROWS }, () => paperMaterial('#8e5a3a')), [])
-  const rows = useRef<(THREE.Mesh | null)[]>([])
-
-  useFrame(() => {
-    const crafts = DESIGNS[journey.current?.people ?? '']?.demos.crafts
-    const colours = crafts?.kind === 'weave' ? crafts.colors : ['#8e5a3a', '#e8dcc4']
-    const p = journey.calm ? 1 : journey.progress[journey.nearest] ?? 1
-    rows.current.forEach((m, i) => {
-      if (!m) return
-      // the weave runs from the start of the section to near its end, one row after another
-      const k = Math.min(1, Math.max(0, (p * 1.15 - 0.05 - i / ROWS) * ROWS))
-      m.visible = k > 0.001
-      m.scale.x = Math.max(0.001, k)
-      cloth[i].color.set(colours[i % colours.length])
-    })
-  })
-
-  return (
-    <group>
-      <mesh geometry={g.beam} material={wood} position={[0, S * 0.1, -S * 1.45]} castShadow />
-      <mesh geometry={g.beam} material={wood} position={[0, S * 0.1, S * 1.45]} castShadow />
-      <lineSegments geometry={g.warp} material={thread} />
-      {cloth.map((m, i) => (
-        <mesh key={i} ref={(el) => { rows.current[i] = el }} geometry={g.row} material={m}
-          position={[-S, S * 0.11, S * 1.3 - (i + 0.5) * ((S * 2.6) / ROWS)]} castShadow />
-      ))}
     </group>
   )
 }

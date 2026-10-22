@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blendOf, dampWorld, mixCamera, mixColor, mixWorld, resolveWorld, sampleRamp, zoomCamera } from './blend'
+import { DEFAULT_MAP, blendOf, dampWorld, mapOf, mixCamera, mixColor, mixWorld, pathCamera, resolveWorld, sampleRamp, zoomCamera } from './blend'
 import { readingProgress, worldAt, type SectionBox } from './sections'
 import type { WorldState } from './types'
 
@@ -92,5 +92,42 @@ describe('travel worlds (the zoom between places)', () => {
     // a tenth of the way through, the camera has hardly left; nine tenths, it has nearly arrived
     expect(resolveWorld('zoom', 0.1, worlds)!.camera.dist).toBeGreaterThan(5.5)
     expect(resolveWorld('zoom', 0.9, worlds)!.camera.dist).toBeLessThan(0.6)
+  })
+})
+
+describe('choreographed flights', () => {
+  const keys = [
+    { lon: 121.9, lat: 12.6, dist: 28, tilt: 0.18, yaw: 0 },
+    { lon: 124.9, lat: 8.9, dist: 12, tilt: 0.34, yaw: 0.12 },
+    { lon: 125.8, lat: 6.9, dist: 3.5, tilt: 0.78, yaw: 0.35 },
+  ]
+  it('passes through every key camera, starting and ending on its two views', () => {
+    expect(pathCamera(keys, 0).dist).toBeCloseTo(28)
+    expect(pathCamera(keys, 0.5).lat).toBeCloseTo(8.9)
+    expect(pathCamera(keys, 1).dist).toBeCloseTo(3.5, 1)
+  })
+  it('turns the short way round between neighbouring yaws', () => {
+    const turn = [{ ...keys[0], yaw: 3.0 }, { ...keys[2], yaw: -3.0 }]
+    // from 3.0 to -3.0 is a small turn across ±π, not a whole spin back through 0
+    expect(Math.abs(pathCamera(turn, 0.5).yaw)).toBeGreaterThan(3)
+  })
+  it('swells the clouds in the middle of a travel world and clears them at its ends', () => {
+    const worlds = { a: base, b: close, fly: { ...base, travel: { from: 'a', to: 'b', via: [keys[1]] }, map: { clouds: 1 } } }
+    expect(resolveWorld('fly', 0, worlds)!.map.clouds).toBeCloseTo(0)
+    expect(resolveWorld('fly', 0.5, worlds)!.map.clouds).toBeCloseTo(1)
+    expect(resolveWorld('fly', 1, worlds)!.map.clouds).toBeCloseTo(0)
+  })
+})
+
+describe('the map in a world', () => {
+  it('fills in a world with no map state of its own', () => {
+    expect(mapOf(base)).toEqual({ ...DEFAULT_MAP, focus: {} })
+  })
+  it('hands the focus from one province to the next as a weight on each', () => {
+    const a = { ...base, map: { focus: 'davao-del-norte', rise: 0.05 } }, b = { ...base, map: { focus: 'davao-de-oro', rise: 0.05 } }
+    const m = mixWorld(a, b, 0.25).map
+    expect(m.focus['davao-del-norte']).toBeCloseTo(0.75)
+    expect(m.focus['davao-de-oro']).toBeCloseTo(0.25)
+    expect(m.rise).toBeCloseTo(0.05)
   })
 })

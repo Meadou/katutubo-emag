@@ -35,8 +35,9 @@ function GongLabel({ label, kind }: { label: Label; kind: GongKind }) {
 }
 
 /**
- * Words attached to the 3D map by thin leader lines: a people's name at their place, each of an
- * island group's peoples at theirs, and the chapter's object with what can be done with it. Only the
+ * Words attached to the 3D map by thin leader lines: a people's name at their place, a province's
+ * two peoples at theirs, the peoples a comparison lights, and the chapter's object with what can be
+ * done with it. Only the
  * section being read has labels; on a phone, only the first shows.
  */
 export default function Labels() {
@@ -94,7 +95,6 @@ export default function Labels() {
       {labels.map((l) => (
         <div key={l.key} ref={(el) => { if (el) boxes.current.set(l.key, el); else boxes.current.delete(l.key) }} className={`label ${l.object ? 'label--object' : ''}`}>
           {l.object === 'gong' ? <GongLabel label={l} kind={gong} />
-            : l.object === 'loom' ? <p className="small">{strings.labels.weave}</p>
             : l.href ? <a href={l.href} onClick={jump(l.key)}><strong>{l.text}</strong></a>
             : <p><strong>{l.text}</strong>{l.sub && <span className="small nums"> {l.sub}</span>}</p>}
         </div>

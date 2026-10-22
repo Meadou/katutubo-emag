@@ -7,6 +7,8 @@ export interface SheetBuffers {
   index: Uint32Array
   /** how many indices are top faces; the rest are walls (so a sheet is exactly two draw calls) */
   capIndexCount: number
+  /** a colour per vertex, when the polygons were given tones */
+  color?: Float32Array
 }
 
 /**
@@ -15,14 +17,17 @@ export interface SheetBuffers {
  *
  * Unlike ExtrudeGeometry, which makes two draw groups for every separate polygon (thousands for the
  * archipelago), all top faces share one group and all walls the other. The bottom, never seen, is
- * left out, and so are texture coordinates.
+ * left out, and so are texture coordinates. With `tones`, every vertex of polygon k takes tones[k] as
+ * its colour ([r, g, b], multiplied with the material's), so one sheet can hold pieces of many tints.
  */
-export function buildSheet(polys: number[][][], top: number, thickness: number): SheetBuffers {
+export function buildSheet(polys: number[][][], top: number, thickness: number, tones?: [number, number, number][]): SheetBuffers {
   const bottom = top - thickness
   let points = 0, edges = 0
   for (const poly of polys) for (const r of poly) { points += r.length / 2; edges += r.length / 2 }
   const position = new Float32Array((points + edges * 4) * 3)
   const normal = new Float32Array(position.length)
+  const color = tones ? new Float32Array(position.length) : undefined
+  let tone: [number, number, number] = [1, 1, 1]
   const caps: number[] = []
   const walls = new Uint32Array(edges * 6)
   let v = 0, w = 0
@@ -30,10 +35,12 @@ export function buildSheet(polys: number[][][], top: number, thickness: number):
   const put = (x: number, y: number, z: number, nx: number, ny: number, nz: number) => {
     position[v * 3] = x; position[v * 3 + 1] = y; position[v * 3 + 2] = z
     normal[v * 3] = nx; normal[v * 3 + 1] = ny; normal[v * 3 + 2] = nz
+    if (color) { color[v * 3] = tone[0]; color[v * 3 + 1] = tone[1]; color[v * 3 + 2] = tone[2] }
     return v++
   }
 
-  for (const poly of polys) {
+  for (const [k, poly] of polys.entries()) {
+    if (tones) tone = tones[k] ?? [1, 1, 1]
     // the top: one triangulation of the polygon with its holes, on vertices shared by its triangles
     const base = v
     const rings = poly.map((r) => {
@@ -83,5 +90,5 @@ export function buildSheet(polys: number[][][], top: number, thickness: number):
   const index = new Uint32Array(caps.length + walls.length)
   index.set(caps, 0)
   index.set(walls, caps.length)
-  return { position: position.subarray(0, v * 3), normal: normal.subarray(0, v * 3), index, capIndexCount: caps.length }
+  return { position: position.subarray(0, v * 3), normal: normal.subarray(0, v * 3), index, capIndexCount: caps.length, color: color?.subarray(0, v * 3) }
 }

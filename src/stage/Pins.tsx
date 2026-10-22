@@ -5,7 +5,7 @@ import { groups, type Group } from '../content'
 import { goToSection, journey } from '../worlds/engine'
 import { stopId } from '../worlds/journeys'
 import { useUi } from '../ui/store'
-import { groundHeight } from './place'
+import { placeOn } from './place'
 import { heightOf, toX, toZ } from './paper'
 import { paperMaterial } from './paper'
 
@@ -24,8 +24,10 @@ const unseen = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, dept
 
 const pointer = (on: boolean) => { document.body.style.cursor = on ? 'pointer' : '' }
 
-/** Farther out than this, the camera is on a map view (the cover, an island group) and the pins stand. */
-export const MAP_VIEW = 3.2
+/** Farther out than this, the camera is on a map view of the region (a province, the comparison) and the pins stand. */
+export const MAP_VIEW = 1.9
+/** Farther out than this, the camera sees the whole country, and the pins are put away. */
+const COUNTRY_VIEW = 12
 
 /**
  * A paper flag on a pin at each people's place on the map views; the marked or pointed-at place
@@ -42,11 +44,16 @@ function Pin({ g }: { g: Group }) {
     const w = journey.current
     if (!w) return
     const on = (w.pin && Math.abs(w.pin.lon - g.lon) < 1e-6 && Math.abs(w.pin.lat - g.lat) < 1e-6) || useUi.getState().hovered === g.slug
-    // pins belong to the map views: they fold away as the camera comes down to a people
-    const showing = w.camera.dist > MAP_VIEW ? 1 : 0
-    ref.current.position.y = Math.max(groundHeight(g.lon, g.lat), heightOf(1))
+    // pins belong to the region's map views: they fold away as the camera comes down to a people, and
+    // out on the whole country, where ten flags in one small region would only be clutter
+    const showing = w.camera.dist > MAP_VIEW && w.camera.dist < COUNTRY_VIEW ? 1 : 0
+    // a comparison lights the peoples who carry its theme; the others are set back
+    const back = w.lit && !w.lit.includes(g.slug)
+    mat.color.set(back ? '#d9cfbd' : g.placeholder && !w.lit ? '#efe7d6' : g.color)
+    const at = placeOn(g.lon, g.lat, w.map)
+    ref.current.position.set(at.x, Math.max(at.y, heightOf(1)), at.z)
     const d = camera.position.distanceTo(ref.current.position)
-    const target = showing * d * (on ? 0.05 : 0.034)
+    const target = showing * d * (on ? 0.05 : back ? 0.022 : 0.034)
     const s = THREE.MathUtils.damp(ref.current.scale.x, target, 8, dt)
     ref.current.scale.setScalar(s)
     ref.current.visible = s > d * 0.002

@@ -10,12 +10,13 @@ describe('the journey', () => {
   const { worlds } = buildJourney(1.6)
   const finished = groups.filter((g) => !g.placeholder)
 
-  it('has finished issues to read', () => {
-    expect(finished.map((g) => g.slug).sort()).toEqual(['ifugao', 'tboli'])
+  it('keeps the myths still: they tell of beings the communities hold sacred', () => {
+    expect(isStillChapter('myths-stories')).toBe(true)
+    expect(isStillChapter('music')).toBe(false)
   })
 
   for (const g of finished) {
-    it(`keeps every Beliefs world still in the ${g.name} issue`, () => {
+    it(`keeps every Myths and Beliefs world still in the ${g.name} issue`, () => {
       const still = g.chapters.filter((c) => isStillChapter(c.id))
       expect(still.length).toBeGreaterThan(0)
       for (const c of still) {
@@ -31,5 +32,9 @@ describe('the journey', () => {
 
   it('puts nothing on the land of a people whose issue is still being prepared', () => {
     for (const g of groups.filter((x) => x.placeholder)) expect(worlds[stopId(g.slug)].props, g.slug).toEqual([])
+  })
+
+  it("stands no object on the map outside a people's own chapters", () => {
+    for (const [id, w] of Object.entries(worlds)) if (!id.startsWith('ch-') && !id.startsWith('stop-')) expect(w.props, id).toEqual([])
   })
 })

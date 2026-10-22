@@ -64,5 +64,8 @@ export function timeForChapter(id: string): TimeName {
   return 'day'
 }
 
-/** Chapters about beliefs, rituals and spirits are still. */
-export const isStillChapter = (id: string) => id.startsWith('beliefs')
+/**
+ * Chapters about beliefs, rituals and spirits are still, and so are the myths: they tell of beings the
+ * communities hold sacred, so the camera stops drifting and nothing stands on the land.
+ */
+export const isStillChapter = (id: string) => id.startsWith('beliefs') || id.startsWith('myths')

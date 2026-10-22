@@ -1,4 +1,4 @@
-import type { Blended, Camera, WorldState } from './types'
+import type { Blended, Camera, MapBlend, MapState, WorldState } from './types'
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -78,19 +78,52 @@ export function zoomCamera(a: Camera, b: Camera, t: number): Camera {
   return { lon: a.lon + u * dx, lat: a.lat + u * dy, dist: w, tilt: lerp(a.tilt, b.tilt, e), yaw: mixAngle(a.yaw, b.yaw, e) }
 }
 
-export function blendOf(w: WorldState): Blended {
+/** The map of a page with no map state of its own: the country a little faded, the Davao pieces at rest in their colours. */
+export const DEFAULT_MAP: MapState = { dim: 0.5, rise: 0, part: 0, tint: 1, clouds: 0, focus: null }
+
+const isBlended = (w: WorldState | Blended): w is Blended => 'propWeights' in w
+
+/** A world's map state, whole, with its focus as a weight per piece. */
+export function mapOf(w: WorldState | Blended): MapBlend {
+  if (isBlended(w)) return w.map
+  const m = { ...DEFAULT_MAP, ...w.map }
+  return { dim: m.dim, rise: m.rise, part: m.part, tint: m.tint, clouds: m.clouds, focus: m.focus ? { [m.focus]: 1 } : {} }
+}
+
+function mixWeights(a: Record<string, number>, b: Record<string, number>, t: number) {
+  const out: Record<string, number> = {}
+  for (const [k, v] of Object.entries(a)) out[k] = (out[k] ?? 0) + v * (1 - t)
+  for (const [k, v] of Object.entries(b)) out[k] = (out[k] ?? 0) + v * t
+  return out
+}
+
+function mixMap(a: MapBlend, b: MapBlend, t: number): MapBlend {
   return {
-    ...w,
+    dim: lerp(a.dim, b.dim, t),
+    rise: lerp(a.rise, b.rise, t),
+    part: lerp(a.part, b.part, t),
+    tint: lerp(a.tint, b.tint, t),
+    clouds: lerp(a.clouds, b.clouds, t),
+    focus: mixWeights(a.focus, b.focus, t),
+  }
+}
+
+export function blendOf(w: WorldState | Blended): Blended {
+  if (isBlended(w)) return w
+  const { map: _, ...rest } = w
+  return {
+    ...rest,
     land: [...w.land],
     propWeights: Object.fromEntries(w.props.map((p) => [p, 1])),
     drift: w.still ? 0 : 1,
+    map: mapOf(w),
   }
 }
 
 /** The world between `a` (t = 0) and `b` (t = 1). */
-export function mixWorld(a: WorldState, b: WorldState, t: number, camera = mixCamera(a.camera, b.camera, t)): Blended {
-  if (t <= 0 && !('propWeights' in a)) return blendOf(a)
-  if (t >= 1 && !('propWeights' in b)) return blendOf(b)
+export function mixWorld(a: WorldState | Blended, b: WorldState | Blended, t: number, camera = mixCamera(a.camera, b.camera, t)): Blended {
+  if (t <= 0 && !isBlended(a)) return blendOf(a)
+  if (t >= 1 && !isBlended(b)) return blendOf(b)
   const near = t < 0.5 ? a : b
   const propWeights: Record<string, number> = {}
   for (const p of a.props) propWeights[p] = (propWeights[p] ?? 0) + (1 - t)
@@ -114,15 +147,44 @@ export function mixWorld(a: WorldState, b: WorldState, t: number, camera = mixCa
     site: near.site,
     people: near.people,
     pin: near.pin,
+    lit: near.lit,
     propWeights,
     drift: lerp(a.still ? 0 : 1, b.still ? 0 : 1, t),
+    map: mixMap(mapOf(a), mapOf(b), t),
+  }
+}
+
+/**
+ * A choreographed flight through key cameras (Catmull-Rom, so it passes through every key without a
+ * corner): distance on a log scale, and the shortest way round between neighbouring yaws.
+ */
+export function pathCamera(keys: Camera[], t: number): Camera {
+  const n = keys.length - 1
+  if (n < 1) return keys[0]
+  const x = Math.min(n - 1e-9, Math.max(0, t * n))
+  const i = Math.floor(x), u = x - i
+  const k = (j: number) => keys[Math.max(0, Math.min(n, j))]
+  const p0 = k(i - 1), p1 = k(i), p2 = k(i + 1), p3 = k(i + 2)
+  const cr = (a: number, b: number, c: number, d: number) =>
+    0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (-a + 3 * b - 3 * c + d) * u * u * u)
+  const turn = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from))
+  const y1 = p1.yaw, y0 = y1 - turn(p0.yaw, p1.yaw), y2 = y1 + turn(p1.yaw, p2.yaw), y3 = y2 + turn(p2.yaw, p3.yaw)
+  return {
+    lon: cr(p0.lon, p1.lon, p2.lon, p3.lon),
+    lat: cr(p0.lat, p1.lat, p2.lat, p3.lat),
+    dist: Math.exp(cr(Math.log(p0.dist), Math.log(p1.dist), Math.log(p2.dist), Math.log(p3.dist))),
+    tilt: cr(p0.tilt, p1.tilt, p2.tilt, p3.tilt),
+    yaw: cr(y0, y1, y2, y3),
   }
 }
 
 /** A zoom eases in, moves fastest through the middle, and settles slowly at the end. */
 const zoomCurve = (p: number) => { const x = Math.min(1, Math.max(0, p)); return x * x * x * (x * (x * 6 - 15) + 10) }
 
-/** The world a section shows at its reading progress. Travel worlds zoom between their two ends on one path. */
+/**
+ * The world a section shows at its reading progress. Travel worlds zoom between their two ends on one
+ * path (or fly through their key cameras); a travel world's own clouds swell and part in its middle.
+ */
 export function resolveWorld(id: string, progress: number, worlds: Record<string, WorldState>): Blended | null {
   const w = worlds[id]
   if (!w) return null
@@ -130,7 +192,11 @@ export function resolveWorld(id: string, progress: number, worlds: Record<string
   const a = worlds[w.travel.from], b = worlds[w.travel.to]
   if (!a || !b) return blendOf(w)
   const t = zoomCurve(progress)
-  return mixWorld(a, b, t, zoomCamera(a.camera, b.camera, t))
+  const camera = w.travel.via?.length ? pathCamera([a.camera, ...w.travel.via, b.camera], t) : zoomCamera(a.camera, b.camera, t)
+  const m = mixWorld(a, b, t, camera)
+  const clouds = w.map?.clouds ?? 0
+  if (clouds) m.map = { ...m.map, clouds: Math.max(m.map.clouds, clouds * Math.sin(Math.PI * Math.min(1, Math.max(0, progress)))) }
+  return m
 }
 
 /** Mixes two already-blended worlds (at the boundary between two sections). */
@@ -138,13 +204,7 @@ export function mixBlended(a: Blended, b: Blended, t: number): Blended {
   if (t <= 0) return a
   if (t >= 1) return b
   const m = mixWorld(a, b, t)
-  const weights = (x: Record<string, number>, y: Record<string, number>) => {
-    const out: Record<string, number> = {}
-    for (const [k, v] of Object.entries(x)) out[k] = (out[k] ?? 0) + v * (1 - t)
-    for (const [k, v] of Object.entries(y)) out[k] = (out[k] ?? 0) + v * t
-    return out
-  }
-  m.propWeights = weights(a.propWeights, b.propWeights)
+  m.propWeights = mixWeights(a.propWeights, b.propWeights, t)
   m.drift = a.drift + (b.drift - a.drift) * t
   return m
 }
@@ -162,5 +222,6 @@ export function dampWorld(cur: Blended, target: Blended, k: number, dt: number):
   m.site = target.site
   m.people = target.people
   m.pin = target.pin
+  m.lit = target.lit
   return m
 }

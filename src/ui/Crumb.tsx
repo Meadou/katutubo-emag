@@ -1,28 +1,44 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { getGroup, groups, type Group, type IslandGroup } from '../content'
+import { PROVINCES, getGroup, groups, type Group, type Province } from '../content'
 import { goToSection, journey, useNearest } from '../worlds/engine'
-import { REGIONS, chapterId, stopId } from '../worlds/journeys'
+import { THEMES } from '../content/traits'
+import { chapterId, compareId, provinceId, stopId } from '../worlds/journeys'
 import { useUi } from './store'
 import { focusSection } from './Recede'
 import { strings } from '../i18n/t'
 
-/** Where the reader is in the journey: a people (on its stop, chapters or the way down to it), or an island group. */
-function whereAt(near: string): { people?: Group; region?: IslandGroup } {
+/** The magazine's own parts, by the section that opens each. */
+const PARTS: { id: string; key: keyof typeof strings.parts }[] = [
+  { id: 'introduction', key: 'introduction' },
+  { id: compareId(THEMES[0].key), key: 'compare' },
+  { id: 'significance', key: 'significance' },
+  { id: 'conclusion', key: 'conclusion' },
+  { id: 'respect', key: 'respect' },
+  { id: 'references', key: 'references' },
+]
+
+/**
+ * Where the reader is in the journey: a people (on its stop, chapters or the way down to it), a
+ * province, or one of the magazine's parts.
+ */
+function whereAt(near: string): { people?: Group; province?: Province; part?: string } {
   const slug = journey.worlds[near]?.people ?? (near.startsWith('down-') ? near.slice(5) : undefined)
   const people = slug ? getGroup(slug) : undefined
   if (people) return { people }
   const ids = journey.sections.map((s) => s.id)
   for (let i = ids.indexOf(near); i >= 0; i--) {
-    const region = REGIONS.find((r) => ids[i] === `region-${r.toLowerCase()}`)
-    if (region) return { region }
+    const province = PROVINCES.find((p) => ids[i] === provinceId(p))
+    if (province) return { province }
+    const part = PARTS.find((p) => ids[i] === p.id || (p.key === 'compare' && ids[i].startsWith('compare-')))
+    if (part) return { part: strings.parts[part.key] }
   }
   return {}
 }
 
 /**
- * The one control: a pill that says where you are ("Katutubo / Ifugao ▾") and opens onto every
- * people by island group, the current people's chapters, and the other pages. It also holds the
+ * The one control: a pill that says where you are ("Katutubo / Mandaya ▾") and opens onto every
+ * people by province, the current people's chapters, the magazine's parts, and the other pages. It also holds the
  * sound switch. It is the first thing the Tab key reaches: the keyboard and screen-reader route to
  * every people.
  */
@@ -31,8 +47,8 @@ export default function Crumb() {
   const { pathname } = useLocation()
   const near = useNearest()
   const onJourney = pathname === '/' || pathname.startsWith('/group/')
-  const { people, region } = onJourney ? whereAt(near) : {}
-  const here = pathname === '/issues' ? s.issues : pathname === '/about' ? s.about : people?.name ?? region ?? s.journey
+  const { people, province, part } = onJourney ? whereAt(near) : {}
+  const here = pathname === '/issues' ? s.issues : pathname === '/about' ? s.about : people?.name ?? province ?? part ?? s.journey
 
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -86,11 +102,11 @@ export default function Crumb() {
 
       <nav id={menuId} className="crumb__menu" aria-label={s.label} hidden={!open}>
         <div className="crumb__groups">
-          {REGIONS.map((r) => (
+          {PROVINCES.map((r) => (
             <div key={r} className="crumb__group">
-              <p className="crumb__title">{r}</p>
+              <p className="crumb__title"><a href={`#/`} className="crumb__province" onClick={go(provinceId(r), '#/', 'start')}>{r}</a></p>
               <ul>
-                {groups.filter((g) => g.islandGroup === r).map((g) => (
+                {groups.filter((g) => g.province === r).map((g) => (
                   <li key={g.slug}>
                     <a href={`#/group/${g.slug}`} onClick={go(stopId(g.slug), `#/group/${g.slug}`, 'end')} className={g.placeholder ? 'is-soon' : ''}
                       aria-current={people?.slug === g.slug ? 'location' : undefined} style={{ ['--c' as string]: g.color }}>
@@ -115,6 +131,14 @@ export default function Crumb() {
             </ul>
           </div>
         )}
+        <div className="crumb__group crumb__parts">
+          <p className="crumb__title">{s.parts}</p>
+          <ul>
+            {PARTS.map((p) => (
+              <li key={p.id}><a href="#/" onClick={go(p.id, '#/', 'start')}>{strings.parts[p.key]}</a></li>
+            ))}
+          </ul>
+        </div>
         <ul className="crumb__more">
           <li><Link to="/issues" onClick={() => close()}>{s.issues}</Link></li>
           <li><Link to="/about" onClick={() => close()}>{s.about}</Link></li>

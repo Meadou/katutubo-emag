@@ -3,10 +3,13 @@ import { nextIssue, parseGroup, sceneObjectKeys } from '.'
 
 const RAW = `---
 name: Test People
-island: Panay
-lon: 122.2
-lat: 11.2
-objects: loom, gong
+province: Davao Oriental
+lon: 126.3
+lat: 7.4
+objects: spirits, gong
+language: Test language
+instruments: boat-lute=kudlung; gong=agung
+themes: creation, culture-hero
 draft: true
 ---
 
@@ -31,13 +34,20 @@ describe('parseGroup', () => {
     expect(g.sources).toContain('<li>A book</li>')
   })
   it('cycles the objects list across chapters', () => {
-    expect(parseGroup(RAW).chapters.map((c) => c.object)).toEqual(['loom', 'gong', 'loom'])
+    expect(parseGroup(RAW).chapters.map((c) => c.object)).toEqual(['spirits', 'gong', 'spirits'])
   })
-  it('derives slug, island group and draft flag', () => {
+  it('derives slug, province and its map piece, and draft flag', () => {
     const g = parseGroup(RAW)
     expect(g.slug).toBe('test-people')
-    expect(g.islandGroup).toBe('Visayas')
+    expect(g.province).toBe('Davao Oriental')
+    expect(g.provinceKey).toBe('davao-oriental')
     expect(g.draft).toBe(true)
+  })
+  it('reads the language, the instruments by trait, and the story themes for the comparison', () => {
+    const g = parseGroup(RAW)
+    expect(g.language).toBe('Test language')
+    expect(g.instruments).toEqual([{ trait: 'boat-lute', name: 'kudlung' }, { trait: 'gong', name: 'agung' }])
+    expect(g.themes).toEqual(['creation', 'culture-hero'])
   })
   it('handles CRLF line endings', () => {
     const g = parseGroup(RAW.replace(/\n/g, '\r\n'))
@@ -78,14 +88,14 @@ describe('nextIssue', () => {
 
 describe('sceneObjectKeys', () => {
   it('dedupes chapter objects in order, spirits for placeholders', () => {
-    expect(sceneObjectKeys(parseGroup(RAW))).toEqual(['loom', 'gong'])
+    expect(sceneObjectKeys(parseGroup(RAW))).toEqual(['spirits', 'gong'])
     expect(sceneObjectKeys(make('p', true))).toEqual(['spirits'])
   })
 })
 
 describe('coordinates', () => {
   it('leaves missing lat/lon as NaN so content lint rejects them', () => {
-    const g = parseGroup('---\nname: Lost\nisland: Panay\n---\n')
+    const g = parseGroup('---\nname: Lost\nprovince: Davao del Sur\n---\n')
     expect(Number.isNaN(g.lat)).toBe(true)
     expect(Number.isNaN(g.lon)).toBe(true)
   })

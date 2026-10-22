@@ -1,3 +1,6 @@
 Elevation: Terrain Tiles on AWS Open Data (Terrarium encoding), built from SRTM, GMTED2010, ETOPO1 and other open sources.
 https://registry.opendata.aws/terrain-tiles/
 Contours: d3-contour.
+Boundaries of the regions, the provinces and Davao City: geoBoundaries (gbOpen PHL ADM1-ADM3, simplified), from the
+National Mapping and Resource Information Authority (NAMRIA), the Philippine Statistics Authority (PSA) and
+OCHA Philippines, licensed CC BY 3.0 IGO. https://www.geoboundaries.org/ ; https://data.humdata.org/dataset/cod-ab-phl

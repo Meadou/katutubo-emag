@@ -4,6 +4,7 @@
 .st-move { transition: transform 1.4s var(--ease-out); }
 .st-fade { transition: opacity 1.1s ease; }
 .st-sky, .st-tint { transition: fill 1.2s ease; }
+.st-width { transition: stroke-width 1.2s ease; }
 .stages__dots { list-style: none; display: flex; gap: 6px; margin: 12px 0 0; padding: 0; }
 .stages__dots li { width: 22px; height: 4px; border-radius: 2px; background: var(--line); transition: background-color 0.4s ease; }
 .stages__dots li.is-on { background: var(--ink); }
@@ -24,7 +25,21 @@
 @keyframes ring { from { opacity: 0.9; transform: scale(0.92); } to { opacity: 0; transform: scale(1.12); } }
 .gongs__how { font-size: 14px; color: var(--ink-soft); }
 
-/* weave */
-.weave { display: block; width: 100%; border-radius: 2px; }
-.weave__ground { fill: #e9dfcb; }
-.weave__pass { transition: transform 0.6s var(--ease-out); }
+/* boat lute */
+.lute__draw { position: relative; }
+.lute__draw svg { display: block; width: 100%; }
+.lute__wood { fill: #8a5a34; stroke: #4e3119; stroke-width: 1.5; }
+.lute__board { fill: #5e3c22; }
+.lute__fret { fill: #2b211a; }
+.lute__string { stroke: #efe5d2; stroke-width: 1.4; }
+.lute__string--drone { stroke-dasharray: none; opacity: 0.8; }
+.lute__frets { position: absolute; inset: 0; }
+.lute__tap {
+  position: absolute; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; cursor: pointer;
+}
+.lute__tap:focus-visible { outline: 2px solid var(--ink); outline-offset: -6px; }
+.lute__tap:hover { background: rgba(29, 27, 23, 0.06); }
+.lute__ring { position: absolute; inset: 8px; border: 2px solid var(--ink); border-radius: 50%; opacity: 0; pointer-events: none; }
+.lute__ring.is-on { animation: ring 0.7s var(--ease-out); }
+.lute__how { font-size: 14px; color: var(--ink-soft); }

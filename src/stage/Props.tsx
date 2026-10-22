@@ -3,8 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { journey } from '../worlds/engine'
 import { OBJECTS } from './props/registry'
-import { groundHeight } from './place'
-import { toX, toZ } from './paper'
+import { placeOn } from './place'
 
 /** Objects belong to a people's chapters: they stand only when the camera has come down to them. */
 const NEAR = 3.4
@@ -23,7 +22,8 @@ function Prop({ id }: { id: string }) {
     const weight = w.propWeights[id] ?? 0
     root.current.visible = weight > 0.01
     if (!root.current.visible) return
-    root.current.position.set(toX(site.lon), groundHeight(site.lon, site.lat), toZ(site.lat))
+    const at = placeOn(site.lon, site.lat, w.map)
+    root.current.position.set(at.x, at.y, at.z)
     // folded flat at 0, standing at 1 (eased by the world's own damping)
     hinge.current.rotation.x = -Math.PI / 2 * (1 - THREE.MathUtils.smoothstep(weight, 0.15, 0.95))
   })

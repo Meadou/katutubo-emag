@@ -4,13 +4,14 @@ import Crumb from './ui/Crumb'
 import Loader from './ui/Loader'
 import SoundBed from './ui/SoundBed'
 import Labels from './ui/Labels'
+import PlaceNames from './ui/PlaceNames'
 import Journey from './pages/Journey'
 import IssueIndex from './pages/IssueIndex'
 import About from './pages/About'
 import StaticWorld from './static/StaticWorld'
 import { journey, startEngine } from './worlds/engine'
 import { useMode } from './worlds/mode'
-import { loadMap } from './worlds/land'
+import { loadMap, loadRegion } from './worlds/land'
 import { isReady, useLoading } from './ui/loading'
 
 // three.js is the heavy part of the bundle; the flat paper world paints first while it loads.
@@ -25,7 +26,7 @@ export default function App() {
   useEffect(() => {
     startEngine()
     // the map and the fonts are waited for once; a failure lets the page through (it still reads)
-    loadMap().then(() => mark({ map: true }), () => mark({ map: true }))
+    Promise.all([loadMap(), loadRegion()]).then(() => mark({ map: true }), () => mark({ map: true }))
     if (document.fonts) document.fonts.ready.then(() => mark({ fonts: true }), () => mark({ fonts: true }))
     else mark({ fonts: true })
   }, [mark])
@@ -53,6 +54,7 @@ export default function App() {
         </Routes>
       </main>
       {/* after the words in the Tab order: a section's heading, then the labels on its map */}
+      {mode === 'live' && <PlaceNames />}
       {mode === 'live' && <Labels />}
       <Loader live={mode === 'live'} />
     </>

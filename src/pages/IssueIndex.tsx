@@ -1,21 +1,21 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { groups, type IslandGroup } from '../content'
+import { PROVINCES, groups, type Province } from '../content'
 import { useJourney } from '../worlds/engine'
 import { plainWorlds } from '../worlds/journeys'
 import { useAspect } from '../worlds/useAspect'
 import { coords, fill, strings } from '../i18n/t'
 
-const FILTERS: ('All' | IslandGroup)[] = ['All', 'Luzon', 'Visayas', 'Mindanao']
+const FILTERS: ('All' | Province)[] = ['All', ...PROVINCES]
 
-/** Every issue on one paper sheet, filterable by island group. */
+/** Every people on one paper sheet, filterable by province. */
 export default function IssueIndex() {
   const root = useRef<HTMLElement>(null)
   const aspect = useAspect()
   const worlds = useMemo(() => plainWorlds(aspect, 'day'), [aspect])
   useJourney(root, worlds, `index:${aspect}`)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All')
-  const list = filter === 'All' ? groups : groups.filter((g) => g.islandGroup === filter)
+  const list = filter === 'All' ? groups : groups.filter((g) => g.province === filter)
   const soon = groups.filter((g) => g.placeholder).length
   const s = strings.index
 
@@ -40,10 +40,10 @@ export default function IssueIndex() {
                 <li key={g.slug}>
                   <Link to={`/group/${g.slug}`} className={`row ${g.placeholder ? 'is-soon' : ''}`} style={{ ['--c' as string]: g.color }}>
                     <span className="row__name">{g.name}</span>
-                    <span className="row__where">{g.islandGroup} · {g.region}</span>
+                    <span className="row__where">{g.region === g.province ? g.province : `${g.province} · ${g.region}`}</span>
                     <span className="row__coords nums">{coords(g)}</span>
                     {g.angle && <span className="row__tag">{g.angle}</span>}
-                    {g.placeholder && <span className="row__soon">{strings.soon.title}</span>}
+                    {g.placeholder && <span className="row__soon">{g.unavailable ? strings.unavailable.title : strings.soon.title}</span>}
                   </Link>
                 </li>
               ))}
